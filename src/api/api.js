@@ -1,7 +1,7 @@
 import axios from "axios";
 import { Alert } from "react-native";
 
-const BASE_URL = "http://34.229.68.3:8080";
+const BASE_URL = "https://api.food-recipe-generator.xyz";
 
 const TIMEOUT = 60000;
 
