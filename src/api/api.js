@@ -1,8 +1,6 @@
 import axios from "axios";
 import { Alert } from "react-native";
 
-//const BASE_URL = "http://192.168.1.93:8080";
-
 const BASE_URL = "http://34.229.68.3:8080";
 
 const TIMEOUT = 60000;
