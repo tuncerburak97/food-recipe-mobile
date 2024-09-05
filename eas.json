@@ -1,10 +1,18 @@
 {
-    "build": {
-      "production": {
-        "android": {
-          "buildType": "app-bundle"
-        }
+  "build": {
+    "production": {
+      "android": {
+        "buildType": "app-bundle"
+      }
+    }
+  },
+  "submit":{
+    "production":{
+      "ios": {
+        "appleId":"tuncerburak97@gmail.com",
+        "ascAppId":"6670521512",
+        "appleTeamId":"C94Y79H5Z7"
       }
     }
   }
-  
+}

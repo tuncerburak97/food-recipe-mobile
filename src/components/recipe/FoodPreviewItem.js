@@ -1,13 +1,14 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
   StyleSheet,
   Pressable,
-  Image,
   Platform,
+  Image,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import { Image as ExpoImage } from "expo-image";
 
 export default function FoodPreviewItem({
   id,
@@ -19,6 +20,20 @@ export default function FoodPreviewItem({
   image,
 }) {
   const navigation = useNavigation();
+  const [imageLoaded, setImageLoaded] = useState(false);
+
+  useEffect(() => {
+    const preloadImage = async () => {
+      try {
+        await ExpoImage.prefetch(image);
+        setImageLoaded(true);
+      } catch (error) {
+        console.error("Görsel önceden yüklenirken hata:", error);
+      }
+    };
+
+    preloadImage();
+  }, [image]);
 
   return (
     <View style={styles.container}>
@@ -31,9 +46,10 @@ export default function FoodPreviewItem({
         ]}
       >
         <View style={styles.gridItem}>
-          <Image
-            source={{ uri: `data:image/png;base64,${image}` }}
+          <ExpoImage
+            source={{ uri: image }}
             style={styles.image}
+            onLoad={() => setImageLoaded(true)}
           />
           <View style={styles.mealDetails}>
             <View style={styles.titleContainer}>

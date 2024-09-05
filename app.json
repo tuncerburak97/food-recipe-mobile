@@ -2,7 +2,7 @@
   "expo": {
     "name": "Tarif Defteri",
     "slug": "food-recipe-ai-mobile",
-    "version": "1.2.1",
+    "version": "1.2.2",
     "orientation": "portrait",
     "icon": "./assets/app-icon.png",
     "userInterfaceStyle": "light",
@@ -16,11 +16,11 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.food-recipe-ai-mobile",
+      "bundleIdentifier": "com.tuncer.food-recipe-ai-mobile",
       "icon": "./assets/app-icon.png"
     },
     "android": {
-      "versionCode": 14,
+      "versionCode": 15,
       "adaptiveIcon": {
         "foregroundImage": "./assets/app-icon.png",
         "backgroundColor": "#ffffff"

@@ -16,7 +16,7 @@ import { GetRecipeById } from "../api/service/service";
 import RecipeDetailCookingLabel from "../components/detail/RecipeDetailCookingLabel";
 import CustomBackButton from "../components/common/CustomBackButton";
 import ListItem from "../components/detail/ListItem";
-
+import { Image as ExpoImage } from "expo-image";
 const h = Dimensions.get("window").height;
 
 export default function FoodDetailScreen() {
@@ -26,12 +26,18 @@ export default function FoodDetailScreen() {
 
   const [recipe, setRecipe] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   useEffect(() => {
     const fetchRecipe = async () => {
       try {
         const response = await GetRecipeById(recipeId);
         setRecipe(response.data);
+
+        if (response.data.image) {
+          await ExpoImage.prefetch(response.data.image);
+          setImageLoaded(true);
+        }
       } catch (error) {
         console.error("Error fetching recipe:", error);
       } finally {
@@ -69,9 +75,10 @@ export default function FoodDetailScreen() {
       <View style={styles.backButton}>
         <CustomBackButton size={18} color="black" />
       </View>
-      <ImageBackground
-        source={{ uri: `data:image/png;base64,${recipe.image}` }}
+      <ExpoImage
+        source={{ uri: recipe.image }}
         style={styles.image}
+        onLoad={() => setImageLoaded(true)}
       />
       <View style={styles.contentContainer}>
         <View style={styles.metadataContainer}>
