@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "Tarif Defteri",
+    "name": "Yemek Tarifi Rehberi",
     "slug": "food-recipe-ai-mobile",
-    "version": "1.2.2",
+    "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/app-icon.png",
     "userInterfaceStyle": "light",
@@ -20,7 +20,7 @@
       "icon": "./assets/app-icon.png"
     },
     "android": {
-      "versionCode": 15,
+      "versionCode": 16,
       "adaptiveIcon": {
         "foregroundImage": "./assets/app-icon.png",
         "backgroundColor": "#ffffff"
@@ -35,9 +35,17 @@
         "projectId": "952595f8-d6d5-43be-9226-63ed782933e1"
       }
     },
+   "expo": {
     "plugins": [
-      "expo-localization",
-      "expo-secure-store"
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow $(PRODUCT_NAME) to access your photos.",
+          "savePhotosPermission": "Allow $(PRODUCT_NAME) to save photos.",
+          "isAccessMediaLocationEnabled": true
+        }
+      ]
     ]
+  }
   }
 }

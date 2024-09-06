@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Linking,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import AddedRecipeItem from "../components/recipe/AddedRecipeItem";
@@ -19,12 +20,17 @@ import * as Animatable from "react-native-animatable";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import SwipeableItem from "../components/common/SwipeableItem";
 import Header from "../components/common/Header";
+import GalleryPermissionModal from "../components/recipe/GalleryPermissionModal";
+import * as MediaLibrary from "expo-media-library";
 
-const AddRecipeScreen = ({}) => {
+const AddRecipeScreen = () => {
   const navigation = useNavigation();
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [hasGalleryPermission, setHasGalleryPermission] = useState(null);
+  const [isModalVisible, setIsModalVisible] = useState(false); // State for modal visibility
+  const [permissionResponse, requestPermission] = MediaLibrary.usePermissions();
 
   const uploadImageRequest = {
     contents: [],
@@ -53,59 +59,65 @@ const AddRecipeScreen = ({}) => {
       navigation.navigate("Ana Sayfa");
     } catch (error) {
       console.error(error);
-      Alert.alert("Hata", "Tarif yüklenirken bir hata oluştu!");
+      Alert.alert(
+        "Hata",
+        "Tarif yüklenirken bir hata oluştu! Tekrar yüklemeyi deneyiniz!"
+      );
     } finally {
       setUploading(false);
     }
   };
 
+  const checkGalleryPermission = async () => {
+    const { status } = await ImagePicker.getMediaLibraryPermissionsAsync();
+    if (status === "granted") {
+      setHasGalleryPermission(true); // İzin verilmiş
+    } else {
+      setIsModalVisible(true);
+    }
+  };
+
   useFocusEffect(
-    React.useCallback(() => {
-      (async () => {
-        if (Platform.OS !== "web") {
-          const { status } =
-            await ImagePicker.requestMediaLibraryPermissionsAsync();
-          if (status !== "granted") {
-            alert("Galeri erişim izni gerekiyor!");
-          } else {
-            openImagePicker();
-          }
-        }
-      })();
+    useCallback(() => {
+      checkGalleryPermission();
     }, [])
   );
 
   const openImagePicker = async () => {
-    setLoading(true);
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: false,
-      quality: 1,
-      base64: true,
-      allowsMultipleSelection: true,
-      selectionLimit: 10,
-      selectedAssets: images.map((image) => ({ uri: image.uri })),
-    });
-
-    if (!result.canceled) {
-      let newImages = [...images];
-      let orderItem = images.length;
-      result.assets.forEach((item) => {
-        if (!newImages.find((img) => img.uri === item.uri)) {
-          orderItem++;
-          const uploadedImage = {
-            name: item.fileName,
-            size: item.fileSize,
-            content: item.base64,
-            order: orderItem,
-            uri: item.uri,
-          };
-          newImages.push(uploadedImage);
-        }
+    if (hasGalleryPermission) {
+      setLoading(true);
+      let result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false,
+        quality: 1,
+        base64: true,
+        allowsMultipleSelection: true,
+        selectionLimit: 10,
+        selectedAssets: images.map((image) => ({ uri: image.uri })),
       });
-      setImages(newImages);
+
+      if (!result.canceled) {
+        let newImages = [...images];
+        let orderItem = images.length;
+        result.assets.forEach((item) => {
+          if (!newImages.find((img) => img.uri === item.uri)) {
+            orderItem++;
+            const uploadedImage = {
+              name: item.fileName,
+              size: item.fileSize,
+              content: item.base64,
+              order: orderItem,
+              uri: item.uri,
+            };
+            newImages.push(uploadedImage);
+          }
+        });
+        setImages(newImages);
+      }
+      setLoading(false);
+    } else {
+      await checkGalleryPermission();
     }
-    setLoading(false);
   };
 
   const handleDeleteImage = (uri) => {
@@ -187,6 +199,10 @@ const AddRecipeScreen = ({}) => {
           />
           <Text style={styles.iconText}>Temizle</Text>
         </TouchableOpacity>
+        <GalleryPermissionModal
+          visible={isModalVisible}
+          onClose={() => setIsModalVisible(false)}
+        />
       </View>
     </SafeAreaView>
   );
@@ -199,25 +215,23 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: "#FFF", // Set a consistent background color
+    backgroundColor: "#FFF",
   },
-
   headerStyle: {
     marginBottom: 20,
   },
-
   iconContainer: {
     flexDirection: "row",
     justifyContent: "space-around",
     alignItems: "center",
     paddingVertical: 10,
     marginBottom: Platform.OS === "android" ? 30 : 10,
-    backgroundColor: "#FFF", // Set a consistent background color
+    backgroundColor: "#FFF",
   },
   iconButton: {
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 10, // Add padding to create space around icons
+    paddingHorizontal: 10,
     marginBottom: 40,
   },
   icon: {
@@ -228,7 +242,7 @@ const styles = StyleSheet.create({
   iconText: {
     fontSize: 14,
     color: "#333",
-    textAlign: "center", // Center the text below the icon
+    textAlign: "center",
   },
   spinner: {
     flex: 1,

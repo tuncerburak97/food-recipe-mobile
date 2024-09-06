@@ -28,6 +28,8 @@
     "expo-image": "~1.12.15",
     "expo-image-picker": "~15.0.5",
     "expo-localization": "~15.0.3",
+    "expo-media-library": "~16.0.4",
+    "expo-permissions": "^14.4.0",
     "expo-secure-store": "~13.0.1",
     "expo-status-bar": "~1.12.1",
     "react": "18.2.0",
