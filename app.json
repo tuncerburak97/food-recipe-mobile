@@ -18,7 +18,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.tuncer.food-recipe-ai-mobile",
       "icon": "./assets/app-icon.png",
-       "buildNumber": "2"
+       "buildNumber": "3"
     },
     "android": {
       "versionCode": 17,
@@ -36,7 +36,6 @@
         "projectId": "952595f8-d6d5-43be-9226-63ed782933e1"
       }
     },
-   "expo": {
     "plugins": [
       [
         "expo-media-library",
@@ -46,6 +45,5 @@
         }
       ]
     ]
-  }
   }
 }
