@@ -67,7 +67,7 @@ const GalleryPermissionModal = ({ visible, onClose }) => {
               }}
             >
               <Text style={styles.buttonText}>
-                {requestedBefore ? "Ayarlar" : "İzin Ver"}
+                {requestedBefore ? "Ayarlar" : "Devam Et"}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity

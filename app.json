@@ -17,10 +17,11 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.tuncer.food-recipe-ai-mobile",
-      "icon": "./assets/app-icon.png"
+      "icon": "./assets/app-icon.png",
+       "buildNumber": "2"
     },
     "android": {
-      "versionCode": 16,
+      "versionCode": 17,
       "adaptiveIcon": {
         "foregroundImage": "./assets/app-icon.png",
         "backgroundColor": "#ffffff"
@@ -40,8 +41,7 @@
       [
         "expo-media-library",
         {
-          "photosPermission": "Allow $(PRODUCT_NAME) to access your photos.",
-          "savePhotosPermission": "Allow $(PRODUCT_NAME) to save photos.",
+          "photosPermission": "$(PRODUCT_NAME) fotoğraflarınıza erişmesine izin verin. Fotoğraf galerinizden seçtiğiniz yemek görsellerini yükleyerek kendi tariflerinizi oluşturabilir ve güncelleyebilirsiniz!",
           "isAccessMediaLocationEnabled": true
         }
       ]
