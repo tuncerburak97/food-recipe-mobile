@@ -55,7 +55,7 @@
     <key>NSPhotoLibraryAddUsageDescription</key>
     <string>Allow $(PRODUCT_NAME) to save photos</string>
     <key>NSPhotoLibraryUsageDescription</key>
-    <string>$(PRODUCT_NAME) fotoğraflara erişmesine izin verin. Fotoğraf galerinizden seçtiğiniz yemek görsellerini yükleyerek kendi tariflerinizi oluşturabilir ve güncelleyebilirsiniz!</string>
+    <string>$(PRODUCT_NAME) fotoğraflarınıza erişmesine izin verin. Fotoğraf galerinizden seçtiğiniz yemek görsellerini yükleyerek kendi tariflerinizi oluşturabilir ve güncelleyebilirsiniz!</string>
     <key>UILaunchStoryboardName</key>
     <string>SplashScreen</string>
     <key>UIRequiredDeviceCapabilities</key>
