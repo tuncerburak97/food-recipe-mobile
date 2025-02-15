@@ -53,7 +53,6 @@ const ChefRecipesScreen = () => {
   const fetchRecipes = async () => {
     try {
       const response = await GetChefRecipes(chefName);
-      console.log("API Response:", response); // Debug için
 
       if (response?.data) {
         setRecipes(response.data);
