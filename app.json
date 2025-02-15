@@ -2,7 +2,7 @@
   "expo": {
     "name": "Yemek Tarifi Rehberi",
     "slug": "food-recipe-ai-mobile",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/app-icon.png",
     "userInterfaceStyle": "light",
@@ -18,7 +18,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.tuncer.food-recipe-ai-mobile",
       "icon": "./assets/app-icon.png",
-       "buildNumber": "3"
+      "buildNumber": "5"
     },
     "android": {
       "versionCode": 17,
