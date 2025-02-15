@@ -26,6 +26,7 @@ import {
   Feather,
 } from "@expo/vector-icons";
 import GalleryPermissionModal from "../components/recipe/GalleryPermissionModal";
+import CustomLoadingModal from "../components/common/CustomLoadingModal";
 import * as MediaLibrary from "expo-media-library";
 import Animated, {
   useSharedValue,
@@ -424,10 +425,11 @@ const AddRecipeScreen = () => {
       )}
 
       {uploading && (
-        <View style={styles.uploadingOverlay}>
-          <ActivityIndicator size="large" color="#FF5722" />
-          <Text style={styles.uploadingText}>Tarif Yükleniyor...</Text>
-        </View>
+        <CustomLoadingModal
+          visible={uploading}
+          message="Tarifiniz yükleniyor... Lütfen bekleyin"
+          icon="food-turkey"
+        />
       )}
 
       <GalleryPermissionModal
