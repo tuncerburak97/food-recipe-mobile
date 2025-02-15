@@ -3,7 +3,7 @@ import { Alert } from "react-native";
 
 const BASE_URL = "https://api.food-recipe-generator.xyz";
 
-//const BASE_URL = "http://localhost:8080";
+//const BASE_URL = "http://192.168.1.50:8080";
 
 const TIMEOUT = 60000;
 
@@ -49,6 +49,7 @@ const handleRequestError = (error) => {
   let errorMessage = "İşleminize şu an devam edemiyoruz.";
 
   if (error.response) {
+    console.log(error.response);
     // Server responded with error
     if (error.response.data && error.response.data.errorMessage) {
       errorMessage = error.response.data.errorMessage;

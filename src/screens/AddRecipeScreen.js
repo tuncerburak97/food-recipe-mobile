@@ -142,11 +142,6 @@ const AddRecipeScreen = () => {
   const scale = useSharedValue(1);
   const isDragging = useSharedValue(false);
 
-  const uploadImageRequest = {
-    contents: [],
-    uploaded_user_device_id: "",
-  };
-
   const checkGalleryPermission = async () => {
     const { status } = await ImagePicker.getMediaLibraryPermissionsAsync();
     if (status === "granted") {
@@ -241,21 +236,25 @@ const AddRecipeScreen = () => {
     }
     setUploading(true);
     try {
+      // Create a new request object for each upload
+      const uploadImageRequest = {
+        contents: [],
+        uploaded_user_device_id: await AsyncStorage.getItem("deviceId"),
+      };
+
+      // Add image contents
       images.forEach((imageData) => {
         uploadImageRequest.contents.push(imageData.content);
       });
-      const deviceId = await AsyncStorage.getItem("deviceId");
-      uploadImageRequest.uploaded_user_device_id = deviceId;
 
-      await AddRecipe(uploadImageRequest);
-      Alert.alert("Başarılı", "Tarif başarıyla yüklendi!");
+      const response = await AddRecipe(uploadImageRequest);
+
+      // Clear images and show success message
       setImages([]);
-      navigation.navigate("Ana Sayfa");
+      Alert.alert("Başarılı", "Tarifiniz başarıyla yüklendi!");
+      navigation.goBack();
     } catch (error) {
-      Alert.alert(
-        "Hata",
-        "Tarif yüklenirken bir hata oluştu. Lütfen tekrar deneyin."
-      );
+      console.error("Upload error:", error);
     } finally {
       setUploading(false);
     }
