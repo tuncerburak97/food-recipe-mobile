@@ -741,7 +741,7 @@
     "@babel/plugin-transform-react-jsx-development" "^7.24.7"
     "@babel/plugin-transform-react-pure-annotations" "^7.24.7"
 
-"@babel/preset-typescript@^7.13.0", "@babel/preset-typescript@^7.16.7", "@babel/preset-typescript@^7.23.0":
+"@babel/preset-typescript@^7.13.0", "@babel/preset-typescript@^7.16.7", "@babel/preset-typescript@^7.17.12", "@babel/preset-typescript@^7.23.0":
   version "7.24.7"
   resolved "https://registry.npmjs.org/@babel/preset-typescript/-/preset-typescript-7.24.7.tgz"
   integrity sha512-SyXRe3OdWwIwalxDg5UtJnJQO+YPcTfwiIY2B0Xlddh9o7jpWLvv8X1RthIeDOxQ+O1ML5BLPCONToObyVQVuQ==
@@ -3280,11 +3280,6 @@ expo-modules-core@1.12.15:
   dependencies:
     invariant "^2.2.4"
 
-expo-permissions@^14.4.0:
-  version "14.4.0"
-  resolved "https://registry.npmjs.org/expo-permissions/-/expo-permissions-14.4.0.tgz"
-  integrity sha512-oAcnJ7dlZhpBydK73cwomA2xofizayVUz+FW5REl7dMu7MYyeN/3aqhlpZ3mYddrxvG161bqu97MQr01UixUnw==
-
 expo-secure-store@~13.0.1:
   version "13.0.1"
   resolved "https://registry.npmjs.org/expo-secure-store/-/expo-secure-store-13.0.1.tgz"
@@ -5641,6 +5636,13 @@ react-native-device-info@^11.1.0:
   version "11.1.0"
   resolved "https://registry.npmjs.org/react-native-device-info/-/react-native-device-info-11.1.0.tgz"
   integrity sha512-hzXJSObJdezEz0hF7MAJ3tGeoesuQWenXXt9mrQR9Mjb8kXpZ09rqSsZ/quNpJdZpQ3rYiFa3/0GFG5KNn9PBg==
+
+react-native-draggable-flatlist@^4.0.1:
+  version "4.0.1"
+  resolved "https://registry.npmjs.org/react-native-draggable-flatlist/-/react-native-draggable-flatlist-4.0.1.tgz"
+  integrity sha512-ZO1QUTNx64KZfXGXeXcBfql67l38X7kBcJ3rxUVZzPHt5r035GnGzIC0F8rqSXp6zgnwgUYMfB6zQc5PKmPL9Q==
+  dependencies:
+    "@babel/preset-typescript" "^7.17.12"
 
 react-native-elements@^3.4.3:
   version "3.4.3"

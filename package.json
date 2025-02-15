@@ -6,7 +6,9 @@
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "dev": "expo start --dev-client",
+    "dev:clean": "expo start --dev-client --clear"
   },
   "dependencies": {
     "@openspacelabs/react-native-zoomable-view": "^2.1.6",
@@ -37,6 +39,7 @@
     "react-native-animatable": "^1.4.0",
     "react-native-datepicker": "^1.7.2",
     "react-native-device-info": "^11.1.0",
+    "react-native-draggable-flatlist": "^4.0.1",
     "react-native-elements": "^3.4.3",
     "react-native-gesture-handler": "~2.16.1",
     "react-native-lightbox-v2": "^0.9.0",

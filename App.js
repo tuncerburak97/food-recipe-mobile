@@ -7,9 +7,13 @@ import { GetLatestVersion } from "./src/api/service/service";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import TutorialModal from "./src/components/common/TutorialModal";
 import * as Application from "expo-application";
+import ErrorModal from "./src/components/ErrorModal";
+import { setErrorModalCallback } from "./src/api/api";
 
 export default function App() {
   const [isTutorialVisible, setIsTutorialVisible] = useState(false);
+  const [errorModalVisible, setErrorModalVisible] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
     const getUniqueId = async () => {
@@ -71,6 +75,12 @@ export default function App() {
       }
     };
 
+    // Set up error modal callback
+    setErrorModalCallback((message) => {
+      setErrorMessage(message);
+      setErrorModalVisible(true);
+    });
+
     checkAppVersion();
     getUniqueId();
     checkTutorialStatus();
@@ -82,6 +92,11 @@ export default function App() {
       <TutorialModal
         isVisible={isTutorialVisible}
         onClose={() => setIsTutorialVisible(false)}
+      />
+      <ErrorModal
+        visible={errorModalVisible}
+        message={errorMessage}
+        onClose={() => setErrorModalVisible(false)}
       />
     </NavigationContainer>
   );
