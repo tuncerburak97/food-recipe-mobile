@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { memo } from "react";
 import {
   View,
   Text,
@@ -10,7 +10,10 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import { Image as ExpoImage } from "expo-image";
 
-export default function FoodPreviewItem({
+const blurhash =
+  "|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXofj[ayj[j[fQayWCoeoeaya}j[ayfQa{oLj?j[WVj[ayayj[fQoff7azayj[ayj[j[ayofayayayj[fQj[ayayj[ayfjj[j[ayjuayj[";
+
+function FoodPreviewItem({
   id,
   name,
   category,
@@ -20,20 +23,6 @@ export default function FoodPreviewItem({
   image,
 }) {
   const navigation = useNavigation();
-  const [imageLoaded, setImageLoaded] = useState(false);
-
-  useEffect(() => {
-    const preloadImage = async () => {
-      try {
-        await ExpoImage.prefetch(image);
-        setImageLoaded(true);
-      } catch (error) {
-        console.error("Görsel önceden yüklenirken hata:", error);
-      }
-    };
-
-    preloadImage();
-  }, [image]);
 
   return (
     <View style={styles.container}>
@@ -49,11 +38,16 @@ export default function FoodPreviewItem({
           <ExpoImage
             source={{ uri: image }}
             style={styles.image}
-            onLoad={() => setImageLoaded(true)}
+            placeholder={blurhash}
+            contentFit="cover"
+            transition={200}
+            cachePolicy="memory-disk"
           />
           <View style={styles.mealDetails}>
             <View style={styles.titleContainer}>
-              <Text style={styles.title}>{name}</Text>
+              <Text style={styles.title} numberOfLines={1}>
+                {name}
+              </Text>
             </View>
             <View style={styles.subDetails}>
               <View style={styles.chefContainer}>
@@ -61,14 +55,16 @@ export default function FoodPreviewItem({
                   source={require("../../images/cooking.png")}
                   style={styles.chefImage}
                 />
-                <Text style={styles.labels}>{chef}</Text>
+                <Text style={styles.labels} numberOfLines={1}>
+                  {chef}
+                </Text>
               </View>
               <View style={styles.labelContainer}>
                 <Image
                   source={require("../../images/tag.png")}
                   style={styles.labelImage}
                 />
-                <Text style={styles.labels} numberOfLines={3}>
+                <Text style={styles.labels} numberOfLines={2}>
                   {labels.join(", ")}
                 </Text>
               </View>
@@ -79,6 +75,8 @@ export default function FoodPreviewItem({
     </View>
   );
 }
+
+export default memo(FoodPreviewItem);
 
 const styles = StyleSheet.create({
   container: {

@@ -92,6 +92,35 @@ export default function HomeScreen() {
     return matchesSearchQuery && matchesCategory && matchesTab;
   });
 
+  const renderItem = useCallback(
+    ({ item }) => {
+      return selectedTab === "myRecipes" ? (
+        <SwipeableItem onDelete={() => handleDeleteRecipe(item.id)}>
+          <FoodPreviewItem
+            id={item.id}
+            name={item.name}
+            category={item.category}
+            chef={item.chef}
+            labels={item.labels}
+            duration={item.duration}
+            image={item.image}
+          />
+        </SwipeableItem>
+      ) : (
+        <FoodPreviewItem
+          id={item.id}
+          name={item.name}
+          category={item.category}
+          chef={item.chef}
+          labels={item.labels}
+          duration={item.duration}
+          image={item.image}
+        />
+      );
+    },
+    [selectedTab]
+  );
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
@@ -116,35 +145,11 @@ export default function HomeScreen() {
           <FlatList
             data={filteredRecipes}
             keyExtractor={(item) => item.id}
-            renderItem={({ item }) =>
-              selectedTab === "myRecipes" ? (
-                <SwipeableItem onDelete={() => handleDeleteRecipe(item.id)}>
-                  <View>
-                    <FoodPreviewItem
-                      id={item.id}
-                      name={item.name}
-                      category={item.category}
-                      chef={item.chef}
-                      labels={item.labels}
-                      duration={item.duration}
-                      image={item.image}
-                    />
-                  </View>
-                </SwipeableItem>
-              ) : (
-                <View>
-                  <FoodPreviewItem
-                    id={item.id}
-                    name={item.name}
-                    category={item.category}
-                    chef={item.chef}
-                    labels={item.labels}
-                    duration={item.duration}
-                    image={item.image}
-                  />
-                </View>
-              )
-            }
+            renderItem={renderItem}
+            maxToRenderPerBatch={10}
+            windowSize={5}
+            removeClippedSubviews={true}
+            initialNumToRender={6}
             ListEmptyComponent={() => (
               <View style={styles.emptyContainer}>
                 <Text style={styles.emptyText}>Tarif bulunamadı.</Text>
