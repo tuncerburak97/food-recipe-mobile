@@ -9,13 +9,28 @@ import TutorialModal from "./src/components/common/TutorialModal";
 import * as Application from "expo-application";
 import ErrorModal from "./src/components/ErrorModal";
 import { setErrorModalCallback } from "./src/api/api";
+import { ToastProvider } from "./src/components/common/ToastManager";
+import AnimatedSplash from "./src/components/common/AnimatedSplash";
 
 export default function App() {
   const [isTutorialVisible, setIsTutorialVisible] = useState(false);
   const [errorModalVisible, setErrorModalVisible] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    const initializeApp = async () => {
+      try {
+        await Promise.all([
+          getUniqueId(),
+          checkAppVersion(),
+          checkTutorialStatus(),
+        ]);
+      } catch (error) {
+        console.error("Initialization error:", error);
+      }
+    };
+
     const getUniqueId = async () => {
       let uniqueId = null;
 
@@ -33,7 +48,6 @@ export default function App() {
       try {
         const latestVersionCode = await GetLatestVersion();
         const currentVersionCode = Constants.expoConfig.android.versionCode;
-
         const lastCheckedVersionCode = await AsyncStorage.getItem(
           "lastCheckedVersionCode"
         );
@@ -81,23 +95,27 @@ export default function App() {
       setErrorModalVisible(true);
     });
 
-    checkAppVersion();
-    getUniqueId();
-    checkTutorialStatus();
+    initializeApp();
   }, []);
 
+  if (isLoading) {
+    return <AnimatedSplash onAnimationEnd={() => setIsLoading(false)} />;
+  }
+
   return (
-    <NavigationContainer>
-      <RootNavigator />
-      <TutorialModal
-        isVisible={isTutorialVisible}
-        onClose={() => setIsTutorialVisible(false)}
-      />
-      <ErrorModal
-        visible={errorModalVisible}
-        message={errorMessage}
-        onClose={() => setErrorModalVisible(false)}
-      />
-    </NavigationContainer>
+    <ToastProvider>
+      <NavigationContainer>
+        <RootNavigator />
+        <TutorialModal
+          isVisible={isTutorialVisible}
+          onClose={() => setIsTutorialVisible(false)}
+        />
+        <ErrorModal
+          visible={errorModalVisible}
+          message={errorMessage}
+          onClose={() => setErrorModalVisible(false)}
+        />
+      </NavigationContainer>
+    </ToastProvider>
   );
 }

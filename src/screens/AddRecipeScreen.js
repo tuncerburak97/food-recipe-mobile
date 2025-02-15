@@ -35,6 +35,7 @@ import Animated, {
   runOnJS,
 } from "react-native-reanimated";
 import { GestureDetector, Gesture } from "react-native-gesture-handler";
+import { useToast } from "../components/common/ToastManager";
 
 const { width } = Dimensions.get("window");
 const COLUMN_COUNT = 2;
@@ -130,6 +131,7 @@ const ImageItem = React.memo(
 
 const AddRecipeScreen = () => {
   const navigation = useNavigation();
+  const showToast = useToast();
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -232,7 +234,11 @@ const AddRecipeScreen = () => {
 
   const uploadImage = async () => {
     if (images.length === 0) {
-      Alert.alert("Uyarı", "Lütfen en az bir fotoğraf seçin.");
+      showToast({
+        message: "Lütfen en az bir fotoğraf seçin",
+        type: "warning",
+        duration: 3000,
+      });
       return;
     }
     setUploading(true);
@@ -252,10 +258,19 @@ const AddRecipeScreen = () => {
 
       // Clear images and show success message
       setImages([]);
-      Alert.alert("Başarılı", "Tarifiniz başarıyla yüklendi!");
+      showToast({
+        message: "Tarifiniz başarıyla yüklendi!",
+        type: "success",
+        duration: 3000,
+      });
       navigation.goBack();
     } catch (error) {
       console.error("Upload error:", error);
+      showToast({
+        message: "Tarif yüklenirken bir hata oluştu",
+        type: "error",
+        duration: 3000,
+      });
     } finally {
       setUploading(false);
     }
