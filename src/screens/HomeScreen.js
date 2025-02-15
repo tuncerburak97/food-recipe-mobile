@@ -6,18 +6,22 @@ import {
   Text,
   ActivityIndicator,
   Platform,
+  Dimensions,
 } from "react-native";
 import FoodCategoryList from "../components/categories/FoodCategoryList";
-import CustomSearchBar from "../components/common/CustomSearchBar";
+import EnhancedSearchBar from "../components/common/EnhancedSearchBar";
 import FoodPreviewItem from "../components/recipe/FoodPreviewItem";
 import { GetRecipes, DeleteRecipe } from "../api/service/service";
 import { useFocusEffect } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import CustomTabBar from "../components/common/CustomTabBar";
 import SwipeableItem from "../components/common/SwipeableItem";
-import Header from "../components/common/Header";
-import { Alert } from "react-native";
+import EnhancedHeader from "../components/common/EnhancedHeader";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import CustomAlert from "../components/common/CustomAlert";
+import * as Animatable from "react-native-animatable";
+
+const { width } = Dimensions.get("window");
 
 export default function HomeScreen() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -121,26 +125,47 @@ export default function HomeScreen() {
     [selectedTab]
   );
 
+  const renderEmptyState = () => (
+    <Animatable.View animation="fadeIn" style={styles.emptyContainer}>
+      <MaterialCommunityIcons name="food-off" size={80} color="#DDD" />
+      <Text style={styles.emptyTitle}>Tarif Bulunamadı</Text>
+      <Text style={styles.emptySubtitle}>
+        Aradığınız kriterlere uygun tarif bulunamadı.
+      </Text>
+    </Animatable.View>
+  );
+
+  const renderLoadingState = () => (
+    <View style={styles.loadingContainer}>
+      <ActivityIndicator size="large" color="#FF5722" />
+      <Text style={styles.loadingText}>Tarifler Yükleniyor...</Text>
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-        <CustomSearchBar
-          placeholder="Yemek ara..."
+      <EnhancedHeader />
+
+      <View style={styles.content}>
+        <EnhancedSearchBar
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
           clearSearch={clearSearch}
         />
-        <FoodCategoryList setSelectedCategory={handleCategorySelect} />
 
-        <Header>Tarifler</Header>
-        <CustomTabBar
-          selectedTab={selectedTab}
-          setSelectedTab={setSelectedTab}
-        />
+        <Animatable.View animation="fadeIn" duration={800} delay={400}>
+          <FoodCategoryList setSelectedCategory={handleCategorySelect} />
+        </Animatable.View>
+
+        <View style={styles.tabSection}>
+          <CustomTabBar
+            selectedTab={selectedTab}
+            setSelectedTab={setSelectedTab}
+          />
+        </View>
+
         {loading ? (
-          <View style={styles.spinnerContainer}>
-            <ActivityIndicator size="large" color="#FF5722" />
-          </View>
+          renderLoadingState()
         ) : (
           <FlatList
             data={filteredRecipes}
@@ -150,15 +175,13 @@ export default function HomeScreen() {
             windowSize={5}
             removeClippedSubviews={true}
             initialNumToRender={6}
-            ListEmptyComponent={() => (
-              <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>Tarif bulunamadı.</Text>
-              </View>
-            )}
-            contentContainerStyle={styles.flatListContent}
+            ListEmptyComponent={renderEmptyState}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
           />
         )}
       </View>
+
       {alert.visible && (
         <CustomAlert
           type={alert.type}
@@ -175,33 +198,47 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#FFF",
   },
-  container: {
+  content: {
     flex: 1,
+  },
+  tabSection: {
     paddingHorizontal: 20,
-    paddingTop: 20,
+    marginVertical: 10,
   },
-  headerText: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 10,
-  },
-  spinnerContainer: {
+  loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    paddingBottom: 50,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: "#666",
+    fontWeight: "500",
   },
   emptyContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingVertical: 20,
-    marginTop: 150,
+    paddingHorizontal: 40,
+    paddingBottom: 100,
   },
-  emptyText: {
-    fontSize: 18,
-    color: "#888",
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#333",
+    marginTop: 16,
+    marginBottom: 8,
   },
-  flatListContent: {
-    paddingBottom: Platform.OS === "android" ? 90 : 30,
+  emptySubtitle: {
+    fontSize: 15,
+    color: "#666",
+    textAlign: "center",
+    lineHeight: 20,
+  },
+  listContent: {
+    paddingHorizontal: 20,
+    paddingBottom: Platform.OS === "ios" ? 120 : 100,
   },
 });
