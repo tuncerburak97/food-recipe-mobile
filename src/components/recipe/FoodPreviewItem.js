@@ -1,141 +1,233 @@
-import React, { memo } from "react";
+import React from "react";
 import {
   View,
   Text,
   StyleSheet,
-  Pressable,
-  Platform,
   Image,
+  TouchableOpacity,
+  Platform,
+  Dimensions,
 } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import Colors from "../../constants/Colors";
+import * as Animatable from "react-native-animatable";
 import { useNavigation } from "@react-navigation/native";
-import { Image as ExpoImage } from "expo-image";
 
-const blurhash =
-  "|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXofj[ayj[j[fQayWCoeoeaya}j[ayfQa{oLj?j[WVj[ayayj[fQoff7azayj[ayj[j[ayofayayayj[fQj[ayayj[ayfjj[j[ayjuayj[";
+const { width } = Dimensions.get("window");
+const CARD_WIDTH = width - 32; // 16 padding on each side
 
-function FoodPreviewItem({
+const FoodPreviewItem = ({
   id,
   name,
   category,
   chef,
-  labels,
+  labels = [],
   duration,
   image,
-}) {
+}) => {
   const navigation = useNavigation();
 
+  const handlePress = () => {
+    navigation.navigate("RecipeDetail", { recipeId: id });
+  };
+
   return (
-    <View style={styles.container}>
-      <Pressable
-        onPress={() => navigation.navigate("RecipeDetail", { recipeId: id })}
-        android_ripple={{ color: "#ccc" }}
-        style={({ pressed }) => [
-          styles.button,
-          pressed ? styles.buttonPressed : null,
-        ]}
+    <Animatable.View
+      animation="fadeInUp"
+      duration={500}
+      delay={200}
+      style={styles.container}
+    >
+      <TouchableOpacity
+        style={styles.card}
+        onPress={handlePress}
+        activeOpacity={0.9}
       >
-        <View style={styles.gridItem}>
-          <ExpoImage
-            source={{ uri: image }}
-            style={styles.image}
-            placeholder={blurhash}
-            contentFit="cover"
-            transition={200}
-            cachePolicy="memory-disk"
-          />
-          <View style={styles.mealDetails}>
-            <View style={styles.titleContainer}>
-              <Text style={styles.title} numberOfLines={1}>
-                {name}
-              </Text>
+        <Image source={{ uri: image }} style={styles.image} />
+
+        <View style={styles.overlay}>
+          <View style={styles.content}>
+            <View style={styles.header}>
+              <View style={styles.titleGroup}>
+                <Text style={styles.category}>{category}</Text>
+                <Text style={styles.title} numberOfLines={2}>
+                  {name}
+                </Text>
+              </View>
+
+              <View style={styles.durationContainer}>
+                <MaterialCommunityIcons
+                  name="clock-outline"
+                  size={14}
+                  color={Colors.text.white}
+                />
+                <Text style={styles.duration}>{duration} dk</Text>
+              </View>
             </View>
-            <View style={styles.subDetails}>
+
+            <View style={styles.footer}>
               <View style={styles.chefContainer}>
-                <Image
-                  source={require("../../images/cooking.png")}
-                  style={styles.chefImage}
+                <MaterialCommunityIcons
+                  name="chef-hat"
+                  size={16}
+                  color={Colors.text.white}
+                  style={styles.chefIcon}
                 />
-                <Text style={styles.labels} numberOfLines={1}>
-                  {chef}
-                </Text>
+                <Text style={styles.chef}>{chef}</Text>
               </View>
-              <View style={styles.labelContainer}>
-                <Image
-                  source={require("../../images/tag.png")}
-                  style={styles.labelImage}
-                />
-                <Text style={styles.labels} numberOfLines={2}>
-                  {labels.join(", ")}
-                </Text>
-              </View>
+
+              {labels.length > 0 && (
+                <View style={styles.labels}>
+                  {labels.map((label, index) => (
+                    <View key={index} style={styles.label}>
+                      <Text style={styles.labelText}>{label}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
             </View>
           </View>
         </View>
-      </Pressable>
-    </View>
+      </TouchableOpacity>
+    </Animatable.View>
   );
-}
-
-export default memo(FoodPreviewItem);
+};
 
 const styles = StyleSheet.create({
   container: {
-    margin: 15,
-    backgroundColor: "white",
-    overflow: "hidden",
-    borderRadius: 10,
-    padding: 10,
-    elevation: 5,
-    shadowColor: "black",
-    shadowOpacity: 0.26,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 8,
-    overflow: Platform.OS === "android" ? "hidden" : "visible",
+    width: CARD_WIDTH,
+    marginBottom: 16,
+    alignSelf: "center",
   },
-  buttonPressed: {
-    opacity: 0.5,
-  },
-  gridItem: {
-    borderRadius: 8,
+  card: {
+    borderRadius: 16,
     overflow: "hidden",
-    flexDirection: "row",
-    alignItems: "center",
+    backgroundColor: Colors.background,
+    ...Platform.select({
+      ios: {
+        shadowColor: Colors.shadow.light.shadowColor,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
   },
   image: {
-    width: "30%",
-    height: "100%",
-    borderRadius: 10,
+    width: "100%",
+    height: 200,
+    resizeMode: "cover",
   },
-  mealDetails: {
-    paddingLeft: 15,
-    width: "70%",
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.45)",
+    justifyContent: "flex-end",
   },
-  titleContainer: { marginTop: 0 },
+  content: {
+    padding: 16,
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 16,
+  },
+  titleGroup: {
+    flex: 1,
+    marginRight: 12,
+  },
+  category: {
+    color: Colors.text.white,
+    fontSize: 13,
+    fontWeight: "700",
+    backgroundColor: "rgba(255, 255, 255, 0.25)",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    overflow: "hidden",
+    alignSelf: "flex-start",
+    marginBottom: 8,
+    textShadowColor: "rgba(0, 0, 0, 0.75)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
   title: {
-    fontSize: 16,
+    color: Colors.text.white,
+    fontSize: 20,
+    fontWeight: "800",
+    marginBottom: 10,
+    letterSpacing: 0.3,
+    textShadowColor: "rgba(0, 0, 0, 0.75)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
-  subDetails: {
-    marginTop: 10,
-  },
-  labels: {
-    color: "#888",
+  footer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 4,
   },
   chefContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 10,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
   },
-  chefImage: {
-    width: 20,
-    height: 20,
-    marginRight: 10,
+  chefIcon: {
+    marginRight: 6,
   },
-  labelContainer: {
+  chef: {
+    color: Colors.text.white,
+    fontSize: 13,
+    fontWeight: "700",
+    textShadowColor: "rgba(0, 0, 0, 0.75)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  durationContainer: {
     flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    alignSelf: "flex-start",
   },
-  labelImage: {
-    width: 20,
-    height: 20,
-    marginRight: 10,
+  duration: {
+    color: Colors.text.white,
+    fontSize: 13,
+    fontWeight: "700",
+    marginLeft: 4,
+    textShadowColor: "rgba(0, 0, 0, 0.75)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  labels: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    flex: 1,
+    marginLeft: 12,
+    justifyContent: "flex-end",
+  },
+  label: {
+    backgroundColor: "rgba(255, 87, 34, 0.25)",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+  },
+  labelText: {
+    color: Colors.text.white,
+    fontSize: 13,
+    fontWeight: "700",
+    textShadowColor: "rgba(0, 0, 0, 0.75)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
 });
+
+export default FoodPreviewItem;

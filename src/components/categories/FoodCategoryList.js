@@ -57,9 +57,9 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 15,
-    gap: 12,
     flexDirection: "row",
     alignItems: "center",
+    columnGap: 12,
   },
 });
 
