@@ -30,11 +30,24 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState("allRecipes");
   const [alert, setAlert] = useState({ visible: false, type: "", message: "" });
+  const [stats, setStats] = useState({
+    recipeCount: 0,
+    chefCount: 0,
+  });
 
   const fetchRecipes = async () => {
     try {
       const response = await GetRecipes();
       setRecipes(response.data);
+
+      // Hesapla benzersiz şef sayısını
+      const uniqueChefs = new Set(response.data.map((recipe) => recipe.chef))
+        .size;
+
+      setStats({
+        recipeCount: response.data.length,
+        chefCount: uniqueChefs,
+      });
     } catch (error) {
       console.error("Error fetching recipes:", error);
     } finally {
@@ -144,7 +157,10 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <EnhancedHeader />
+      <EnhancedHeader
+        recipeCount={stats.recipeCount}
+        chefCount={stats.chefCount}
+      />
 
       <View style={styles.content}>
         <EnhancedSearchBar

@@ -1,62 +1,66 @@
-import { FlatList, View } from "react-native";
+import React, { useState } from "react";
+import { View, ScrollView, StyleSheet } from "react-native";
+import FoodCategoryGridTile from "./FoodCategoryGridTile";
+import Colors from "../../constants/Colors";
+import * as Animatable from "react-native-animatable";
 
-import { React, useState } from "react";
-import Header from "../common/Header";
-import FoodCategoryGridTile from "../categories/FoodCategoryGridTile";
-
-const CATEGORIES = [
-  {
-    id: "0",
-    title: "Tümü",
-    image: require("../../images/all.jpg"),
-  },
-
-  {
-    id: "1",
-    title: "Ana Yemek",
-    image: require("../../images/maincourse.jpg"),
-  },
-  { id: "2", title: "Çorba", image: require("../../images/soup.jpg") },
-  { id: "3", title: "Salata", image: require("../../images/salad.jpg") },
-  { id: "4", title: "Tatlı", image: require("../../images/desert.jpg") },
-  { id: "5", title: "Kahvaltı", image: require("../../images/breakfast.jpg") },
-  { id: "6", title: "İçecekler", image: require("../../images/drink.jpg") },
-  { id: "7", title: "Atıştırmalık", image: require("../../images/snack.jpg") },
+const categories = [
+  { id: "all", name: "Tümü", icon: "silverware-fork-knife" },
+  { id: "main", name: "Ana Yemek", icon: "food-turkey" },
+  { id: "soup", name: "Çorba", icon: "bowl-mix" },
+  { id: "dessert", name: "Tatlı", icon: "cake-variant" },
+  { id: "salad", name: "Salata", icon: "food-apple" },
+  { id: "breakfast", name: "Kahvaltı", icon: "coffee" },
+  { id: "snack", name: "Atıştırmalık", icon: "cookie" },
 ];
 
-export default function FoodCategoryList({ setSelectedCategory }) {
-  const [selectedItem, setSelectedItem] = useState(null);
+const FoodCategoryList = ({ setSelectedCategory }) => {
+  const [selectedId, setSelectedId] = useState("all");
 
-  const handleSelect = (item) => {
-    setSelectedItem(item);
+  const handleCategoryPress = (category) => {
+    setSelectedId(category.id);
+    setSelectedCategory(category.name);
   };
 
-  function renderCategory(itemData) {
-    function handleCategoryPress(itemData) {
-      setSelectedCategory(itemData.title);
-      handleSelect(itemData);
-    }
-
-    return (
-      <FoodCategoryGridTile
-        image={itemData.item.image}
-        title={itemData.item.title}
-        onPress={() => handleCategoryPress(itemData.item)}
-        isSelected={itemData.item.id === selectedItem?.id}
-      />
-    );
-  }
-
   return (
-    <View>
-      <Header>Kategoriler</Header>
-      <FlatList
-        data={CATEGORIES}
-        keyExtractor={(item) => item.id}
-        renderItem={renderCategory}
+    <View style={styles.container}>
+      <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-      ></FlatList>
+        contentContainerStyle={styles.scrollContent}
+        decelerationRate="normal"
+      >
+        {categories.map((category, index) => (
+          <Animatable.View
+            key={category.id}
+            animation="fadeIn"
+            delay={index * 100}
+            duration={500}
+          >
+            <FoodCategoryGridTile
+              title={category.name}
+              icon={category.icon}
+              onSelect={() => handleCategoryPress(category)}
+              isSelected={selectedId === category.id}
+            />
+          </Animatable.View>
+        ))}
+      </ScrollView>
     </View>
   );
-}
+};
+
+const styles = StyleSheet.create({
+  container: {
+    backgroundColor: Colors.background,
+    paddingVertical: 15,
+  },
+  scrollContent: {
+    paddingHorizontal: 15,
+    gap: 12,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+});
+
+export default FoodCategoryList;

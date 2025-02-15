@@ -1,66 +1,79 @@
-import React, { useState } from "react";
+import React from "react";
 import {
-  TouchableOpacity,
   View,
   Text,
   StyleSheet,
-  Image,
-  ScrollView,
+  TouchableOpacity,
+  Platform,
 } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import Colors from "../../constants/Colors";
 
-export default function FoodCategoryGridTile({
-  image,
-  title,
-  onPress,
-  isSelected,
-}) {
+const FoodCategoryGridTile = ({ title, icon, onSelect, isSelected }) => {
   return (
-    <TouchableOpacity style={styles.container} onPress={onPress}>
-      <View style={styles.itemContainer}>
-        <View style={[styles.circle, isSelected ? styles.selected : null]}>
-          <Image source={image} style={styles.image} />
-        </View>
-        <View style={styles.textContainer}>
-          <Text style={styles.title}>{title}</Text>
-        </View>
+    <TouchableOpacity
+      style={[styles.gridItem, isSelected && styles.selectedItem]}
+      onPress={onSelect}
+      activeOpacity={0.7}
+    >
+      <View style={[styles.container, isSelected && styles.selectedContainer]}>
+        <MaterialCommunityIcons
+          name={icon}
+          size={24}
+          color={isSelected ? Colors.primary : Colors.text.secondary}
+          style={styles.icon}
+        />
+        <Text style={[styles.title, isSelected && styles.selectedTitle]}>
+          {title}
+        </Text>
       </View>
     </TouchableOpacity>
   );
-}
+};
 
 const styles = StyleSheet.create({
+  gridItem: {
+    height: 80,
+    width: 80,
+    borderRadius: 20,
+    backgroundColor: Colors.backgroundLight,
+    ...Platform.select({
+      ios: {
+        shadowColor: Colors.shadow.light.shadowColor,
+        shadowOffset: Colors.shadow.light.shadowOffset,
+        shadowOpacity: Colors.shadow.light.shadowOpacity,
+        shadowRadius: Colors.shadow.light.shadowRadius,
+      },
+      android: {
+        elevation: Colors.shadow.light.elevation,
+      },
+    }),
+  },
+  selectedItem: {
+    backgroundColor: Colors.primaryLight,
+  },
   container: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    margin: 8,
-  },
-  itemContainer: {
+    padding: 10,
     justifyContent: "center",
     alignItems: "center",
   },
-  circle: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    justifyContent: "center",
-    alignItems: "center",
-    overflow: "hidden", // Add this line
+  selectedContainer: {
+    backgroundColor: Colors.primaryLight,
   },
-  image: {
-    width: "100%",
-    height: "100%",
-    position: "absolute",
+  icon: {
+    marginBottom: 4,
   },
-  selected: {
-    borderColor: "#FF5722",
-    borderWidth: 2,
+  title: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: Colors.text.secondary,
+    textAlign: "center",
   },
-  textContainer: {
-    marginTop: 5,
-  },
-  text: {
-    color: "#FFFFFF",
-    fontSize: 16,
+  selectedTitle: {
+    color: Colors.primary,
+    fontWeight: "700",
   },
 });
+
+export default FoodCategoryGridTile;
