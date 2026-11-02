@@ -1,10 +1,11 @@
 {
-  "cli":{
-    "version": ">= 0.34.0"
+  "cli": {
+    "version": ">= 0.34.0",
+    "appVersionSource": "local"
   },
   "build": {
-    "base":{
-      "env":{}
+    "base": {
+      "env": {}
     },
     "development": {
       "extends": "base",
@@ -20,16 +21,18 @@
     "production": {
       "android": {
         "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://recipe.civar.io"
       }
     }
-
   },
-  "submit":{
-    "production":{
+  "submit": {
+    "production": {
       "ios": {
-        "appleId":"tuncerburak97@gmail.com",
-        "ascAppId":"6670521512",
-        "appleTeamId":"C94Y79H5Z7"
+        "appleId": "tuncerburak97@gmail.com",
+        "ascAppId": "6670521512",
+        "appleTeamId": "C94Y79H5Z7"
       }
     }
   }
