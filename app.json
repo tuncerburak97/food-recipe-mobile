@@ -1,49 +1,105 @@
 {
   "expo": {
-    "name": "Yemek Tarifi Rehberi",
+    "name": "Tarif Defteri",
     "slug": "food-recipe-ai-mobile",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
-    "icon": "./assets/app-icon.png",
-    "userInterfaceStyle": "light",
-    "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#1A1A1A"
-    },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "icon": "./assets/icon/icon.png",
+    "scheme": "yemektarifi",
+    "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.tuncer.food-recipe-ai-mobile",
-      "icon": "./assets/app-icon.png",
-      "buildNumber": "5"
+      "buildNumber": "6",
+      "icon": {
+        "light": "./assets/icon/icon.png",
+        "dark": "./assets/icon/icon-dark.png",
+        "tinted": "./assets/icon/icon-tinted.png"
+      },
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
-      "versionCode": 17,
+      "package": "com.tuncerburak97.foodrecipeaimobile",
+      "versionCode": 18,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/app-icon.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/icon/android-foreground.png",
+        "monochromeImage": "./assets/icon/android-monochrome.png",
+        "backgroundColor": "#D0582D"
       },
-      "package": "com.tuncerburak97.foodrecipeaimobile"
+      "predictiveBackGestureEnabled": false
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "output": "static",
+      "favicon": "./assets/icon/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/icon/splash-icon.png",
+          "imageWidth": 200,
+          "backgroundColor": "#D0582D"
+        }
+      ],
+      "expo-secure-store",
+      [
+        "expo-sharing",
+        {
+          "ios": {
+            "enabled": true,
+            "appGroupId": "group.com.tuncer.food-recipe-ai-mobile",
+            "activationRule": {
+              "supportsText": true,
+              "supportsWebUrlWithMaxCount": 1
+            }
+          },
+          "android": {
+            "enabled": true,
+            "singleShareMimeTypes": [
+              "text/plain"
+            ]
+          }
+        }
+      ],
+      "./plugins/with-share-extension-name",
+      "expo-video",
+      "expo-notifications",
+      "expo-widgets",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Tarifini sesle anlatabilmen ve pişirirken sesle komut verebilmen için mikrofon gerekiyor."
+        }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Pişirirken “sonraki”, “tekrar” gibi sesli komutları duyabilmek için mikrofon gerekiyor.",
+          "speechRecognitionPermission": "Sesli komutlarını yazıya çevirebilmek için konuşma tanıma gerekiyor.",
+          "androidSpeechServicePackages": [
+            "com.google.android.googlequicksearchbox"
+          ]
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Pişirdiğin yemeğin fotoğrafını günlüğüne ekleyebilmen için fotoğraflarına erişim gerekiyor.",
+          "cameraPermission": "Pişirdiğin yemeğin fotoğrafını çekebilmen için kamera gerekiyor."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
     },
     "extra": {
       "eas": {
         "projectId": "952595f8-d6d5-43be-9226-63ed782933e1"
       }
-    },
-    "plugins": [
-      [
-        "expo-media-library",
-        {
-          "photosPermission": "$(PRODUCT_NAME) fotoğraflarınıza erişmesine izin verin. Fotoğraf galerinizden seçtiğiniz yemek görsellerini yükleyerek kendi tariflerinizi oluşturabilir ve güncelleyebilirsiniz!",
-          "isAccessMediaLocationEnabled": true
-        }
-      ]
-    ]
+    }
   }
 }
