@@ -21,11 +21,11 @@ with busy hands in a kitchen. Ease of use comes first; every visual rule below s
 The palette values are fixed. Never add hex colors in components; the only exceptions are
 `#FFFFFF` text on photos and dark `rgba(…)` scrims over photos/video.
 
-Both modes follow the fintrack-mobile look. Light: a cool light gray page (`#F5F7FA`), white sheet
-and cards, navy text (`#0D1421`), slate supporting text and a blue accent (`#3861FB`). Dark: a
-near-black page (`#050607`) above a dark sheet (`#0F1113`); the accent is a light pill (`#EEF1F2`)
-with dark text, so selected chips, the active tab and main buttons stay high-contrast.
-Never put `accentStrong` on `ink`: in dark mode both are light (the toast action uses `onInk`).
+Both modes follow the fintrack-mobile look with the app's own orange accent. Light: a cool light
+gray page (`#F5F7FA`), white sheet and cards, navy text (`#0D1421`) and slate supporting text.
+Dark: a near-black page (`#050607`) above a dark sheet (`#0F1113`). The orange (`accentStrong`
+`#C4512A`) is the same in both modes. The toast action uses `onInk`, never the accent, so it reads
+on the toast in either mode.
 
 | Role | Use |
 | --- | --- |

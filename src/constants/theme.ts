@@ -2,9 +2,8 @@
  * Design tokens. Colors are semantic roles with a light and a dark palette. Layout follows a
  * two-tone pattern: `background` is the page/chrome, `surface` is the sheet and cards on top of it.
  *
- * Both modes share the fintrack-mobile look. Light: a cool light gray page, white sheet and cards,
- * navy text and a blue accent. Dark: a near-black page above a dark sheet, and the accent is a
- * light pill with dark text (blue has too little contrast on near-black).
+ * Both modes share the fintrack-mobile look (Light: a cool light gray page, white sheet and cards,
+ * navy text. Dark: a near-black page above a dark sheet) with the app's own orange accent.
  *
  * - accent: fills, icons and selection marks. accentStrong: behind white text (main buttons).
  * - accentText: accent dark enough for small text. peach/peachSoft: photo placeholders, avatars.
@@ -19,10 +18,10 @@ export const Colors = {
     text: '#0D1421',
     textSecondary: '#58667E',
     textTertiary: '#808A9D',
-    accent: '#3861FB',
-    accentStrong: '#3861FB',
-    accentSoft: '#EAF0FF',
-    accentText: '#2B50D8',
+    accent: '#DE6438',
+    accentStrong: '#C4512A',
+    accentSoft: '#FCE8DD',
+    accentText: '#B54D26',
     onAccent: '#FFFFFF',
     peach: '#E3E8F1',
     peachSoft: '#F3F5F9',
@@ -45,11 +44,11 @@ export const Colors = {
     text: '#EEF1F2',
     textSecondary: '#A3ABAF',
     textTertiary: '#7D868B',
-    accent: '#EEF1F2',
-    accentStrong: '#EEF1F2',
-    accentSoft: '#22262B',
-    accentText: '#EEF1F2',
-    onAccent: '#0B0C0D',
+    accent: '#EC7A4E',
+    accentStrong: '#C4512A',
+    accentSoft: '#43271B',
+    accentText: '#F59A76',
+    onAccent: '#FFFFFF',
     peach: '#1F2328',
     peachSoft: '#16191C',
     onPeach: '#EEF1F2',
