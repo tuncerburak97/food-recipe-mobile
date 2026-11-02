@@ -44,8 +44,8 @@ export function ToastHost() {
             }}
             hitSlop={8}
             accessibilityRole="button"
-            style={[styles.action, { backgroundColor: colors.accentStrong }]}>
-            <Text variant="subhead" weight="700" tint={colors.onAccent}>
+            style={[styles.action, { backgroundColor: colors.onInk }]}>
+            <Text variant="subhead" weight="700" tint={colors.ink}>
               {toast.action.label}
             </Text>
           </Pressable>

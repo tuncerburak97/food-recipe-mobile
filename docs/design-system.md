@@ -5,7 +5,7 @@ with busy hands in a kitchen. Ease of use comes first; every visual rule below s
 
 ## Principles
 
-1. **One obvious next step.** Each screen has at most one primary (orange) button, placed at the
+1. **One obvious next step.** Each screen has at most one primary (accent) button, placed at the
    bottom in thumb reach (`StickyFooter` / wizard footer). Everything else is secondary, outline or
    ghost.
 2. **Plain words, big targets.** Labels are short Turkish sentences in "sen" form. Every tappable
@@ -21,9 +21,15 @@ with busy hands in a kitchen. Ease of use comes first; every visual rule below s
 The palette values are fixed. Never add hex colors in components; the only exceptions are
 `#FFFFFF` text on photos and dark `rgba(…)` scrims over photos/video.
 
+Both modes follow the fintrack-mobile look. Light: a cool light gray page (`#F5F7FA`), white sheet
+and cards, navy text (`#0D1421`), slate supporting text and a blue accent (`#3861FB`). Dark: a
+near-black page (`#050607`) above a dark sheet (`#0F1113`); the accent is a light pill (`#EEF1F2`)
+with dark text, so selected chips, the active tab and main buttons stay high-contrast.
+Never put `accentStrong` on `ink`: in dark mode both are light (the toast action uses `onInk`).
+
 | Role | Use |
 | --- | --- |
-| `background` | The cream page / chrome behind headers. |
+| `background` | The page / chrome behind headers (light gray in light mode). |
 | `surface` | White sheets, cards, modals, tab bar. |
 | `surfaceMuted` | Sunken fills: icon wells, inputs on white, secondary buttons, tracks. |
 | `border` | Hairlines (`StyleSheet.hairlineWidth`) and dividers. |
@@ -32,7 +38,7 @@ The palette values are fixed. Never add hex colors in components; the only excep
 | `accentText` | Small accent text: links ("Tümü ›"), active tab, step numbers. |
 | `accentSoft` | Fill of a selected answer card. |
 | `accent` | Progress fills, small marks (dots, timeline). |
-| `peach` / `peachSoft` | Photo placeholders and the personal/AI note card only. |
+| `peach` / `peachSoft` | Photo placeholders, initials avatars and the personal/AI note card only. |
 | `ink` / `onInk` | Toasts, the user's chat bubbles, the `dark` button. |
 | `success` / `warning` / `danger` (+`Soft`) | Status only (done, estimated, error, delete). |
 
@@ -52,7 +58,8 @@ on `TextInput`; never italic.
 Only `Icon` from `@/components/ui/icon` (Ionicons, outline glyphs; filled only for small status
 marks like `checkmark-circle`). No MaterialCommunityIcons, no emoji. At most one icon per row,
 chip or button. Chips are text-only (except × to remove / ✓ when picked). Section titles have no
-icons.
+icons. The Home category tiles are the one place categories get an icon (`categoryIcon()`), in a
+white well on a `surfaceMuted` tile.
 
 ## Shape and spacing
 
@@ -64,7 +71,7 @@ Spacing: screen padding 20 · gap between sections 28 · inside a section 12 · 
 
 | Screen kind | Layout |
 | --- | --- |
-| Tab screens, pushed list screens | Cream header (`SheetHeader` in a scroll view, or `SheetLayout` around a list) above a white sheet with a 28 pt rounded top. |
+| Tab screens, pushed list screens | Page-colored header (`SheetHeader` in a scroll view, or `SheetLayout` around a list) above a white sheet with a 28 pt rounded top. |
 | Modals (add, assistant, create, edit) | White `surface` page, `ScreenHeader leading="close" tone="muted"`, optional `StickyFooter`. |
 | Wizards (chef, onboarding questions) | `WizardLayout`: flow name, "Adım x/y", progress bar, one question, Geri / Devam footer. |
 | Recipe detail, cooking | Full-bleed photo/video, then a white sheet rising over it with a 28 pt rounded top. |

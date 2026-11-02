@@ -56,7 +56,9 @@ function FeatureCard({ filled, icon, title, text, onPress }: CardProps) {
           : { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: StyleSheet.hairlineWidth },
       ]}>
       <View style={styles.top}>
-        <View style={[styles.well, { backgroundColor: filled ? 'rgba(255,255,255,0.18)' : colors.surfaceMuted }]}>
+        <View style={[styles.well, !filled && { backgroundColor: colors.surfaceMuted }]}>
+          {/* On the filled card the well is a faint wash of the text color, so it reads on blue and on the light dark-mode pill. */}
+          {filled ? <View style={[StyleSheet.absoluteFill, styles.wash, { backgroundColor: fg }]} /> : null}
           <Icon name={icon} size={20} color={fg} />
         </View>
         <Icon name="arrow-forward" size={18} color={filled ? colors.onAccent : colors.textTertiary} />
@@ -77,7 +79,8 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: 10 },
   card: { flex: 1, minHeight: 150, padding: 16, borderRadius: Radius.xl, justifyContent: 'space-between', gap: 18 },
   top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  well: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
+  well: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  wash: { opacity: 0.16 },
   text: { gap: 4 },
   soft: { opacity: 0.88 },
 });

@@ -24,6 +24,8 @@ import { tourStorage } from '@/lib/token-storage';
 import { wasSharedThisSession } from '@/store/pending-share';
 
 const RAIL_CARD = 156;
+/** Home shows the biggest categories (three rows of two); "Tümü" opens Search with every category. */
+const HOME_CATEGORIES = 6;
 
 /**
  * Home. On the cream page: who you are, one question ("Bugün ne pişirelim?"), search and the two
@@ -118,8 +120,11 @@ export default function HomeScreen() {
 
           {categoryCounts.length > 0 && (
             <View style={styles.section}>
-              <SectionHeader title="Kategoriler" />
-              <CategoryTiles counts={categoryCounts} />
+              <SectionHeader
+                title="Kategoriler"
+                action={categoryCounts.length > HOME_CATEGORIES ? { label: 'Tümü', onPress: () => router.navigate('/search') } : undefined}
+              />
+              <CategoryTiles counts={categoryCounts.slice(0, HOME_CATEGORIES)} />
             </View>
           )}
 
