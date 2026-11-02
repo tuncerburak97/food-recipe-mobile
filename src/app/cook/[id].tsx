@@ -8,7 +8,8 @@ import { Pressable, ScrollView, StyleSheet, View, type ScrollViewInstance } from
 import Animated, { FadeInDown, FadeInLeft, FadeInRight, FadeOutDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Celebration, FinishedSummary } from '@/components/cook/cook-done';
+import { Celebration, FinishedFooter, FinishedSummary } from '@/components/cook/cook-done';
+import { VoiceControl } from '@/components/cook/voice-control';
 import { StepIngredients } from '@/components/cook/step-ingredients';
 import { StepRail } from '@/components/cook/step-rail';
 import { StepTimer } from '@/components/cook/step-timer';
@@ -30,6 +31,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { companionLine } from '@/lib/companion';
 import { formatMinutes, HEAT_LABELS, isEstimated } from '@/lib/format';
 import { useMe, useRecipe } from '@/lib/queries';
+import { stepClip } from '@/lib/step-clip';
 import type { Recipe, Step } from '@/lib/types';
 import { markStepDone, resetProgress, startCooking, undoStep, useCookProgress } from '@/store/cook-progress';
 import { removeTimer, timerId } from '@/store/timers';
@@ -185,6 +187,7 @@ export default function CookScreen() {
               imageUrl={entry.imageUrl}
               instagramUrl={entry.source.url}
               bottomInset={OVERLAP}
+              clip={stepClip(step)}
               style={StyleSheet.absoluteFill}
             />
           ) : entry.imageUrl ? (
@@ -202,7 +205,7 @@ export default function CookScreen() {
 
           <Animated.View key={page} entering={(forward ? FadeInRight : FadeInLeft).duration(240)} style={styles.body}>
             {finished ? (
-              <FinishedSummary name={name} total={total} doneCount={progress.done.length} minutes={minutes} />
+              <FinishedSummary entry={entry} name={name} total={total} doneCount={progress.done.length} minutes={minutes} />
             ) : step ? (
               <>
                 <View style={styles.stepTop}>
@@ -289,6 +292,8 @@ export default function CookScreen() {
         </View>
       </ScrollView>
 
+      <VoiceControl entryId={entry.id} recipe={recipe} page={page} onGo={(p) => !busy && go(p)} onComplete={complete} />
+
       <IconButton
         icon="close"
         label="Pişirme modunu kapat"
@@ -298,23 +303,16 @@ export default function CookScreen() {
       />
 
       {finished ? (
-        <StickyFooter>
-          <Button title="Tarife dön" onPress={close} style={styles.main} />
-          <View style={styles.row}>
-            <Button title="Adımlara göz at" variant="secondary" size="md" onPress={() => go(1)} style={styles.flex} />
-            <Button
-              title="Baştan pişir"
-              variant="ghost"
-              size="md"
-              icon="refresh-outline"
-              onPress={() => {
-                resetProgress(entry.id);
-                go(0);
-              }}
-              style={styles.flex}
-            />
-          </View>
-        </StickyFooter>
+        // Cook journal: "Günlüğe kaydet" is the main action once something is entered on the page.
+        <FinishedFooter
+          entry={entry}
+          onClose={close}
+          onReview={() => go(1)}
+          onRestart={() => {
+            resetProgress(entry.id);
+            go(0);
+          }}
+        />
       ) : (
         <StickyFooter>
           {undo && (

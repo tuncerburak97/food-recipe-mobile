@@ -7,6 +7,7 @@ import { Text } from '@/components/ui/text';
 import { Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { capitalize, formatAmount, scaleIngredient, upperTr } from '@/lib/format';
+import { ingredientNames, useIngredientCheck } from '@/lib/kitchen';
 import type { Ingredient, IngredientGroup } from '@/lib/types';
 
 interface Props {
@@ -20,12 +21,15 @@ interface Props {
 /**
  * Ingredients as a shopping / prep checklist, one bordered card per group. Each row: a round tick
  * box, the ingredient, and its amount right-aligned in a steady column so amounts scan straight
- * down. Tapping a row ticks it off and fades it.
+ * down. Tapping a row ticks it off and fades it. Ingredients in the user's pantry get a quiet
+ * "evde" after their name (also in cook mode, so it stays small).
  */
 export function IngredientChecklist({ groups, factor = 1, checkable = true }: Props) {
   const { colors } = useTheme();
   const [checked, setChecked] = useState<Set<string>>(new Set());
   const grouped = groups.length > 1 || groups[0]?.source !== 'default';
+  const pantry = useIngredientCheck(ingredientNames(groups)).data;
+  const atHome = (name: string) => !!pantry && pantry.pantryCount > 0 && pantry.byName[name]?.status === 'have';
 
   const toggle = (key: string) => {
     Haptics.selectionAsync();
@@ -64,6 +68,7 @@ export function IngredientChecklist({ groups, factor = 1, checkable = true }: Pr
                     ingredient={scaleIngredient(ing, factor)}
                     first={i === 0}
                     checked={checked.has(key)}
+                    atHome={atHome(ing.name)}
                     onPress={checkable ? () => toggle(key) : undefined}
                   />
                 );
@@ -76,7 +81,16 @@ export function IngredientChecklist({ groups, factor = 1, checkable = true }: Pr
   );
 }
 
-function Row({ ingredient: ing, first, checked, onPress }: { ingredient: Ingredient; first: boolean; checked: boolean; onPress?: () => void }) {
+interface RowProps {
+  ingredient: Ingredient;
+  first: boolean;
+  checked: boolean;
+  /** In the user's pantry ("Dolabım"). */
+  atHome?: boolean;
+  onPress?: () => void;
+}
+
+function Row({ ingredient: ing, first, checked, atHome, onPress }: RowProps) {
   const { colors } = useTheme();
   const measured = ing.quantity != null;
   const amount = formatAmount(ing);
@@ -88,7 +102,7 @@ function Row({ ingredient: ing, first, checked, onPress }: { ingredient: Ingredi
       disabled={!onPress}
       accessibilityRole={onPress ? 'checkbox' : 'text'}
       accessibilityState={onPress ? { checked } : undefined}
-      accessibilityLabel={`${amount ? `${amount} ` : ''}${ing.name}${note ? `, ${note}` : ''}`}
+      accessibilityLabel={`${amount ? `${amount} ` : ''}${ing.name}${atHome ? ', evde' : ''}${note ? `, ${note}` : ''}`}
       style={({ pressed }) => [
         styles.row,
         !first && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
@@ -108,6 +122,12 @@ function Row({ ingredient: ing, first, checked, onPress }: { ingredient: Ingredi
       <View style={[styles.text, checked && styles.done]}>
         <Text variant="callout" weight="600" style={checked && styles.strike}>
           {capitalize(ing.name)}
+          {/* Inline, so rows do not grow when the pantry answer arrives. */}
+          {atHome ? (
+            <Text variant="footnote" weight="600" color="success">
+              {'  evde'}
+            </Text>
+          ) : null}
         </Text>
         {note.length > 0 && (
           <Text variant="footnote" color="textTertiary" style={checked && styles.strike}>

@@ -73,13 +73,53 @@ const UNIT_LABELS: Record<Unit, string> = {
   drop: 'damla',
   stick: 'çubuk',
   cube: 'küp',
-  oz: 'oz',
-  lb: 'lb',
-  fl_oz: 'fl oz',
+  // Imperial units are converted (see toMetric); these are only seen without a quantity.
+  oz: 'ons',
+  lb: 'libre',
+  fl_oz: 'sıvı ons',
   pint: 'pint',
   quart: 'quart',
   other: '',
 };
+
+/**
+ * Imperial measures as a Turkish kitchen measures them: grams and millilitres. Newer recipes are
+ * converted by the backend already; this keeps older or missed ones readable ("8 oz" -> "230 gr").
+ */
+const METRIC: Partial<Record<Unit, { unit: 'g' | 'ml'; factor: number }>> = {
+  oz: { unit: 'g', factor: 28.35 },
+  lb: { unit: 'g', factor: 453.6 },
+  fl_oz: { unit: 'ml', factor: 29.57 },
+  pint: { unit: 'ml', factor: 473 },
+  quart: { unit: 'ml', factor: 946 },
+};
+
+function roundMetric(n: number): number {
+  if (n < 20) return Math.max(1, Math.round(n));
+  if (n < 100) return Math.round(n / 5) * 5;
+  return Math.round(n / 10) * 10;
+}
+
+function toMetric(ing: Ingredient): Ingredient {
+  const m = ing.unit ? METRIC[ing.unit] : undefined;
+  if (!m || ing.quantity == null) return ing;
+  const max = ing.quantity_max != null ? ing.quantity_max * m.factor : null;
+  const big = (max ?? ing.quantity * m.factor) >= 1000;
+  const convert = (n: number) => (big ? Math.round(n / 100) / 10 : roundMetric(n));
+  return {
+    ...ing,
+    quantity: convert(ing.quantity * m.factor),
+    quantity_max: max != null ? convert(max) : null,
+    unit: big ? (m.unit === 'g' ? 'kg' : 'l') : m.unit,
+  };
+}
+
+/** The unit as a Turkish cook says it. "cup" is a coffee cup (fincan) in Turkish recipes, a cup elsewhere. */
+function unitLabel(ing: Ingredient): string {
+  if (!ing.unit || ing.unit === 'other') return ing.unit_text ?? '';
+  if (ing.unit === 'cup') return /fincan/i.test(ing.unit_text ?? '') ? 'fincan' : 'bardak';
+  return UNIT_LABELS[ing.unit];
+}
 
 const FRACTIONS: Record<string, string> = { '0.25': '¼', '0.50': '½', '0.75': '¾', '0.33': '⅓', '0.67': '⅔' }; // keys match toFixed(2)
 
@@ -90,16 +130,68 @@ function formatNumber(n: number): string {
   return Number.isInteger(n) ? String(n) : n.toLocaleString('tr-TR', { maximumFractionDigits: 2 });
 }
 
-/** "500 gr", "2–3 yemek kaşığı", "½ su bardağı" or "Damak zevkine göre". */
-export function formatAmount(ing: Ingredient): string {
+/** "500 gr", "2–3 yemek kaşığı", "½ su bardağı" or "Göz kararı". */
+export function formatAmount(input: Ingredient): string {
+  const ing = toMetric(input);
   if (ing.quantity == null) {
-    if (ing.unit_text) return ing.unit_text;
+    // Without a number the words as written read best ("bir tutam"); translated recipes write them in Turkish.
+    const unit = ing.unit_text || unitLabel(ing);
+    if (unit) return unit;
     return ing.to_taste ? 'Göz kararı' : '';
   }
   const qty =
     ing.quantity_max != null ? `${formatNumber(ing.quantity)}–${formatNumber(ing.quantity_max)}` : formatNumber(ing.quantity);
-  const unit = ing.unit && ing.unit !== 'other' ? UNIT_LABELS[ing.unit] : (ing.unit_text ?? '');
+  const unit = unitLabel(ing);
   return unit ? `${qty} ${unit}` : qty;
+}
+
+/** A moment in the video as a clock: 12.4 -> "0:12", 75 -> "1:15". */
+export function videoClock(sec: number): string {
+  const s = Math.max(0, Math.floor(sec));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}
+
+const LANGUAGE_NAMES: Record<string, string> = {
+  en: 'İngilizce',
+  de: 'Almanca',
+  fr: 'Fransızca',
+  es: 'İspanyolca',
+  it: 'İtalyanca',
+  pt: 'Portekizce',
+  nl: 'Felemenkçe',
+  ru: 'Rusça',
+  uk: 'Ukraynaca',
+  pl: 'Lehçe',
+  el: 'Yunanca',
+  ar: 'Arapça',
+  fa: 'Farsça',
+  az: 'Azerice',
+  ka: 'Gürcüce',
+  hi: 'Hintçe',
+  ur: 'Urduca',
+  ja: 'Japonca',
+  ko: 'Korece',
+  zh: 'Çince',
+  th: 'Tayca',
+  vi: 'Vietnamca',
+  id: 'Endonezce',
+  sv: 'İsveççe',
+  ro: 'Romence',
+  bg: 'Bulgarca',
+  he: 'İbranice',
+};
+
+/**
+ * One quiet line for a recipe written from a source in another language:
+ * "İngilizce videodan çevrildi · ölçüler Türk mutfağına uyarlandı". Null for Turkish recipes.
+ */
+export function translatedLine(recipe: Recipe, fromVideo: boolean): string | null {
+  const lang = (recipe.language ?? '').trim().toLocaleLowerCase('en-US');
+  if (!recipe.is_recipe || !lang || /^(tr|turk|türk)/.test(lang)) return null;
+  const code = lang.split(/[-_]/)[0];
+  const source = fromVideo ? 'videodan' : 'tariften';
+  const name = code.length === 2 ? LANGUAGE_NAMES[code] : undefined;
+  return `${name ? `${name} ${source}` : `Yabancı dildeki ${source}`} çevrildi · ölçüler Türk mutfağına uyarlandı`;
 }
 
 export function formatMinutes(min: number): string {

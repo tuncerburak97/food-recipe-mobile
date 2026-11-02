@@ -8,6 +8,7 @@ import { FeatureCards } from '@/components/home/feature-cards';
 import { FeaturedRecipe } from '@/components/home/featured-recipe';
 import { GenerationStatus } from '@/components/home/generation-status';
 import { HomeHeader } from '@/components/home/home-header';
+import { KitchenShortcuts } from '@/components/home/kitchen-shortcuts';
 import { RecipeCard } from '@/components/recipe/recipe-card';
 import { Button } from '@/components/ui/button';
 import { EmptyState, ErrorState } from '@/components/ui/empty-state';
@@ -91,6 +92,8 @@ export default function HomeScreen() {
         }>
         <View style={styles.sheet}>
           <GenerationStatus jobs={generations.data?.items ?? []} />
+
+          <KitchenShortcuts />
 
           {recent.isPending ? (
             <FeaturedSkeleton />

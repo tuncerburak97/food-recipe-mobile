@@ -56,10 +56,20 @@ export interface Step {
   duration_minutes: number | null;
   temperature_c: number | null;
   heat: Heat | null;
+  /**
+   * Where this step happens in the reel, in seconds (from what is said in the video). Null when the
+   * video has no speech or the step cannot be placed. Older recipes do not have the fields.
+   */
+  video_start_sec?: number | null;
+  video_end_sec?: number | null;
 }
 
 export interface Recipe {
   is_recipe: boolean;
+  /**
+   * ISO 639-1 code of the source (caption or speech), e.g. "en". The recipe itself is always written
+   * in Turkish: a foreign source is translated and its measures adapted (see translatedLine).
+   */
   language: string;
   title: string;
   title_source: 'text' | 'inferred';
@@ -101,6 +111,8 @@ export interface RecipeOutput {
   prompt_version: string;
   data_source: 'database' | 'agent';
   created_at?: string;
+  /** True when what is said in the video was used along with its caption. */
+  listened?: boolean;
 }
 
 export interface ReelOwner {
@@ -124,6 +136,8 @@ export interface Reel {
     width: number;
     height: number;
     duration_sec: number;
+    /** False for a silent reel: there is nothing to listen to. */
+    has_audio?: boolean;
     thumbnail_url: string;
   };
   owner: ReelOwner;
@@ -155,7 +169,7 @@ export interface ApiUser {
   onboarded_at: string | null;
 }
 
-export type RecipeOrigin = 'instagram' | 'text' | 'ai';
+export type RecipeOrigin = 'instagram' | 'text' | 'ai' | 'voice';
 
 /** Today's answers in the "Elimde ne var?" flow (recipe-backend internal/chef Request). */
 export interface ChefRequest {
@@ -225,6 +239,8 @@ export interface ApiEntry {
   generation?: Generation | null;
   /** AI recipes: the background food photo ("pending" until it is ready). */
   image_status?: 'pending' | 'ready' | 'failed' | null;
+  /** Recipes told out loud (origin "voice"): the recording (internal/store/voice.go EntryVoice). */
+  voice?: { url: string; duration_sec: number | null; teller: string | null; waveform: number[] } | null;
 }
 
 export interface ApiPage {
@@ -295,6 +311,18 @@ export interface RecipeEntry {
   /** Set for recipes made from what the user has ("Elimde ne var?"). */
   generation?: Generation;
   imageStatus?: 'pending' | 'ready' | 'failed';
+  /** Set for recipes told out loud ("Annemin tarifi"): the recording to replay. */
+  voice?: RecipeVoice;
+}
+
+/** The recording of a recipe told out loud. `url` is absolute and needs authHeaders(). */
+export interface RecipeVoice {
+  url: string;
+  durationSec?: number;
+  /** Who tells it, as the user chose ("Annem"). */
+  teller?: string;
+  /** Loudness in up to 64 steps (0..1); empty when unknown. */
+  waveform: number[];
 }
 
 // ---- cooking assistant ----

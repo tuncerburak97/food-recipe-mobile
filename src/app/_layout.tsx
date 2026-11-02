@@ -110,6 +110,10 @@ function RootStack() {
           <Stack.Screen name="create" options={{ presentation: 'formSheet', sheetAllowedDetents: 'fitToContents', sheetGrabberVisible: true, sheetCornerRadius: 28, contentStyle: { backgroundColor: colors.surface } }} />
           <Stack.Screen name="add" options={{ presentation: 'modal', contentStyle: { backgroundColor: colors.surface } }} />
           <Stack.Screen name="assistant/[id]" options={{ presentation: 'modal', contentStyle: { backgroundColor: colors.surface } }} />
+          <Stack.Screen name="pantry" options={{ contentStyle: { backgroundColor: colors.surface } }} />
+          <Stack.Screen name="shopping" options={{ contentStyle: { backgroundColor: colors.surface } }} />
+          <Stack.Screen name="journal" options={{ contentStyle: { backgroundColor: colors.surface } }} />
+          <Stack.Screen name="voice-recipe" options={{ presentation: 'modal', gestureEnabled: false, contentStyle: { backgroundColor: colors.surface } }} />
         </Stack.Protected>
         <Stack.Protected guard={status === 'onboarding'}>
           <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />

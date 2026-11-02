@@ -7,15 +7,20 @@ import Animated, { interpolate, useAnimatedReaction, useAnimatedScrollHandler, u
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { scheduleOnRN } from 'react-native-worklets';
 
+import { AdaptChips } from '@/components/recipe/adapt-chips';
 import { AiHero } from '@/components/recipe/ai-hero';
 import { ChefNote } from '@/components/recipe/chef-note';
 import { IngredientChecklist } from '@/components/recipe/ingredient-checklist';
+import { JournalNote } from '@/components/recipe/journal-note';
+import { KitchenBar } from '@/components/recipe/kitchen-bar';
 import { MetaLine } from '@/components/recipe/meta-pills';
 import { NotesCard } from '@/components/recipe/notes-card';
 import { ServingsStepper } from '@/components/recipe/servings-stepper';
 import { SourceCreator } from '@/components/recipe/source-creator';
 import { StepList } from '@/components/recipe/step-list';
+import { TranslatedNote } from '@/components/recipe/translated-note';
 import { VideoHero } from '@/components/recipe/video-hero';
+import { VoiceMemo } from '@/components/recipe/voice-memo';
 import { Button } from '@/components/ui/button';
 import { ErrorState, LoadingState } from '@/components/ui/empty-state';
 import { Icon } from '@/components/ui/icon';
@@ -159,7 +164,7 @@ export default function RecipeScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: insets.bottom + 120 }}>
         <View style={{ height: HERO_HEIGHT + insets.top, backgroundColor: colors.peach }}>
-          {entry.origin === 'ai' && !entry.imageUrl ? (
+          {(entry.origin === 'ai' || entry.origin === 'voice') && !entry.imageUrl ? (
             <AiHero category={recipe.category} pending={entry.imageStatus === 'pending'} style={[StyleSheet.absoluteFill, { paddingTop: insets.top, paddingBottom: OVERLAP }]} />
           ) : (
             <VideoHero
@@ -185,9 +190,12 @@ export default function RecipeScreen() {
                 {recipe.description}
               </Text>
             ) : null}
+            <TranslatedNote recipe={recipe} fromVideo={!!source} />
           </View>
 
           <MetaLine recipe={recipe} />
+
+          <JournalNote entry={entry} />
 
           {entry.customized && (
             <View style={[styles.custom, { backgroundColor: colors.surfaceMuted }]}>
@@ -206,6 +214,10 @@ export default function RecipeScreen() {
           )}
 
           {entry.generation && <ChefNote generation={entry.generation} title={recipe.title} mine={mine} />}
+
+          <VoiceMemo entry={entry} />
+
+          <AdaptChips entry={entry} mine={mine} />
 
           <ListGroup>
             {source && <SourceCreator source={source} first />}
@@ -243,6 +255,7 @@ export default function RecipeScreen() {
                 </View>
               )}
               <IngredientChecklist groups={recipe.ingredient_groups} factor={factor} />
+              <KitchenBar entry={entry} factor={factor} />
               <Text variant="footnote" color="textTertiary" align="center">
                 Hazırladığın malzemeye dokunup işaretleyebilirsin
               </Text>

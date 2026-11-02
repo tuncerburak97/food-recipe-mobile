@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
@@ -14,30 +14,40 @@ const MESSAGES = [
   'Pişirme süresi hesaplanıyor…',
 ];
 
+/** Shown second when the video's speech is read too. */
+const LISTENING = 'Videoda anlatılanlar dinleniyor…';
+
 interface Props {
   title?: string;
   /** Lines shown one after another while the AI works. */
   messages?: string[];
   hint?: string;
+  /**
+   * The backend listens to the video as well (speech to text is on and the reel has sound): adds that
+   * stage and a longer time hint. Leave it off when that is not known, so the loader never claims it.
+   */
+  listening?: boolean;
 }
 
 /**
  * Shown while the AI works (recipe agent: usually 10-20 s). Calm on purpose: a spinner in a well,
  * one status line at a time, a bar that slowly fills (it never claims to be done) and the seconds.
  */
-export function AiLoader({ title = 'Tarifin hazırlanıyor', messages = MESSAGES, hint = 'Genelde 10-20 saniye sürer' }: Props) {
+export function AiLoader({ title = 'Tarifin hazırlanıyor', messages = MESSAGES, hint, listening = false }: Props) {
   const { colors } = useTheme();
+  const lines = useMemo(() => (listening ? [...messages.slice(0, 1), LISTENING, ...messages.slice(1)] : messages), [listening, messages]);
+  const timeHint = hint ?? (listening ? 'Genelde 15-30 saniye sürer' : 'Genelde 10-20 saniye sürer');
   const [index, setIndex] = useState(0);
   const [seconds, setSeconds] = useState(0);
 
   useEffect(() => {
-    const msg = setInterval(() => setIndex((i) => Math.min(i + 1, messages.length - 1)), 2600);
+    const msg = setInterval(() => setIndex((i) => Math.min(i + 1, lines.length - 1)), 2600);
     const clock = setInterval(() => setSeconds((s) => s + 1), 1000);
     return () => {
       clearInterval(msg);
       clearInterval(clock);
     };
-  }, [messages.length]);
+  }, [lines.length]);
 
   // Eases towards ~90% and waits there; the screen changes when the recipe is really ready.
   const progress = 0.06 + 0.86 * (1 - Math.exp(-seconds / 9));
@@ -55,7 +65,7 @@ export function AiLoader({ title = 'Tarifin hazırlanıyor', messages = MESSAGES
         <View style={styles.status} accessibilityLiveRegion="polite">
           <Animated.View key={index} entering={FadeIn.duration(260)}>
             <Text variant="callout" color="textSecondary" align="center">
-              {messages[index]}
+              {lines[index]}
             </Text>
           </Animated.View>
         </View>
@@ -64,7 +74,7 @@ export function AiLoader({ title = 'Tarifin hazırlanıyor', messages = MESSAGES
       <ProgressBar value={progress} label={title} style={styles.bar} />
 
       <Text variant="footnote" color="textTertiary" align="center" style={styles.clock}>
-        {seconds} sn · {hint}
+        {seconds} sn · {timeHint}
       </Text>
     </View>
   );

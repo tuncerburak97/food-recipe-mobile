@@ -8,7 +8,7 @@ import { Text } from '@/components/ui/text';
 import { ScreenPadding } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
-/** The "Ekle" button of the tab bar: the two ways to get a new recipe, each in one plain sentence. */
+/** The "Ekle" button of the tab bar: the three ways to get a new recipe, each in one plain sentence. */
 export default function CreateScreen() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
@@ -29,6 +29,13 @@ export default function CreateScreen() {
           title="Instagram videosundan ekle"
           description="Yemek videosunun linkini yapıştır; malzemeler ve adımlar düzenli bir tarife dönüşsün."
           onPress={() => router.replace('/add')}
+        />
+        <ChoiceCard
+          role="button"
+          icon="mic-outline"
+          title="Sesle anlat"
+          description="Annenin, anneannenin tarifini kaydet, biz yazıya dökelim."
+          onPress={() => router.replace('/voice-recipe')}
         />
         <Text variant="footnote" color="textTertiary" style={styles.tip}>
           İpucu: Instagram’da bir videoyu Paylaş menüsünden “Tarif Defteri”ne gönderirsen link kendiliğinden gelir.

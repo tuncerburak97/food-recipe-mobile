@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { KitchenListGroup } from '@/components/kitchen/kitchen-list-group';
 import { Avatar } from '@/components/ui/avatar';
 import { SheetHeader, sheetScrollStyles } from '@/components/ui/layout';
 import { ListGroup, ListRow } from '@/components/ui/list';
@@ -74,7 +75,15 @@ export default function SettingsScreen() {
             subtitle={prefs.length ? prefs.join(' · ') : 'Ad, beslenme, alerjiler, mutfak tercihleri'}
             onPress={() => router.push('/profile')}
           />
+          <ListRow
+            icon="journal-outline"
+            title="Pişirdiklerim"
+            subtitle="Pişirdiğin yemekler, notların ve fotoğrafların"
+            onPress={() => router.push('/journal')}
+          />
         </ListGroup>
+
+        <KitchenListGroup />
 
         <ListGroup title="Görünüm" footer="Sistem seçiliyken telefonunun açık ya da koyu ayarı kullanılır.">
           <View style={styles.segment}>

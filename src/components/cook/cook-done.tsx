@@ -1,10 +1,17 @@
-import { StyleSheet, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
+import { AccessibilityInfo, StyleSheet, View } from 'react-native';
 import Animated, { Easing, FadeIn, FadeInDown, FadeOut, ZoomIn } from 'react-native-reanimated';
 
+import { CookJournalForm } from '@/components/journal/cook-journal-form';
+import { clearDraft, hasUnsaved, saveDraft, useDraftKey, useJournalDraft } from '@/components/journal/draft';
+import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
+import { StickyFooter } from '@/components/ui/layout';
 import { Text } from '@/components/ui/text';
 import { useTheme } from '@/hooks/use-theme';
 import { upperTr } from '@/lib/format';
+import { journalErrorText } from '@/lib/journal';
+import type { RecipeEntry } from '@/lib/types';
 
 /** The "done" mark: a solid accent circle with a check, set in a soft accent ring. */
 export function DoneMark({ size = 88 }: { size?: number }) {
@@ -51,8 +58,24 @@ export function Celebration({ index, total }: { index: number; total: number }) 
   );
 }
 
-/** The last page: the mark, a short thank-you and the numbers of this cook. Actions live in the footer. */
-export function FinishedSummary({ name, total, doneCount, minutes }: { name?: string; total: number; doneCount: number; minutes: number | null }) {
+/**
+ * The last page: the mark, a short thank-you, the numbers of this cook and "Nasıl oldu?" for the
+ * cook journal. Actions live in the footer (`FinishedFooter`).
+ */
+export function FinishedSummary({
+  entry,
+  name,
+  total,
+  doneCount,
+  minutes,
+}: {
+  /** The recipe that was cooked (for the cook journal). */
+  entry?: RecipeEntry;
+  name?: string;
+  total: number;
+  doneCount: number;
+  minutes: number | null;
+}) {
   const { colors } = useTheme();
   const all = doneCount === total;
   const stats = [
@@ -88,11 +111,77 @@ export function FinishedSummary({ name, total, doneCount, minutes }: { name?: st
           </View>
         ))}
       </Animated.View>
+      {entry ? (
+        <Animated.View entering={FadeInDown.delay(280).duration(260)} style={styles.journal}>
+          <CookJournalForm entry={entry} />
+        </Animated.View>
+      ) : null}
     </View>
   );
 }
 
+/**
+ * The finished page's footer, with one main action: "Günlüğe kaydet" once something is entered in
+ * "Nasıl oldu?", otherwise "Tarife dön". Closing is never blocked: "Tarife dön" stays one tap away,
+ * and a save already started finishes on its own.
+ */
+export function FinishedFooter({
+  entry,
+  onClose,
+  onReview,
+  onRestart,
+}: {
+  entry: RecipeEntry;
+  onClose: () => void;
+  /** "Adımlara göz at". */
+  onReview: () => void;
+  /** "Baştan pişir". */
+  onRestart: () => void;
+}) {
+  const key = useDraftKey(entry.id);
+  const draft = useJournalDraft(key);
+  const unsaved = hasUnsaved(draft);
+
+  const save = async () => {
+    const log = await saveDraft(key, entry.id);
+    Haptics.notificationAsync(log ? Haptics.NotificationFeedbackType.Success : Haptics.NotificationFeedbackType.Error);
+    if (log) AccessibilityInfo.announceForAccessibility('Günlüğe kaydedildi');
+  };
+  const restart = () => {
+    if (draft.status === 'saved') clearDraft(key);
+    onRestart();
+  };
+
+  return (
+    <StickyFooter>
+      {unsaved && draft.status === 'error' ? (
+        <Text variant="footnote" color="danger" align="center" accessibilityLiveRegion="polite">
+          {journalErrorText(draft.error)}
+        </Text>
+      ) : null}
+      {unsaved ? (
+        <Button title="Günlüğe kaydet" icon="checkmark" loading={draft.status === 'saving'} onPress={save} style={styles.main} />
+      ) : (
+        <Button title="Tarife dön" onPress={onClose} style={styles.main} />
+      )}
+      <View style={styles.row}>
+        {unsaved ? (
+          <Button title="Tarife dön" variant="secondary" size="md" onPress={onClose} style={styles.flex} />
+        ) : (
+          <Button title="Adımlara göz at" variant="secondary" size="md" onPress={onReview} style={styles.flex} />
+        )}
+        <Button title="Baştan pişir" variant="ghost" size="md" icon="refresh-outline" onPress={restart} style={styles.flex} />
+      </View>
+    </StickyFooter>
+  );
+}
+
 const styles = StyleSheet.create({
+  journal: { alignSelf: 'stretch', marginTop: 4 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  flex: { flex: 1 },
+  // Same height as the main button of the cooking steps.
+  main: { minHeight: 56 },
   center: { alignItems: 'center', justifyContent: 'center' },
   celebrate: { alignItems: 'center', justifyContent: 'center', gap: 22, zIndex: 50 },
   texts: { alignItems: 'center', gap: 6, paddingHorizontal: 24 },

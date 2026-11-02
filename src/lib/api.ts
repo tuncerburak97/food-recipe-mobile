@@ -71,9 +71,27 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, init: RequestInit, timeoutMs: number): Promise<T> {
+/**
+ * Headers every backend call sends (API key, signed-in user, device). Also for images and audio
+ * the app loads from the backend that need the user, e.g. `source={{ uri, headers: authHeaders() }}`.
+ */
+export function authHeaders(): Record<string, string> {
+  return {
+    ...(API_KEY ? { 'X-API-Key': API_KEY } : {}),
+    ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+    ...(deviceId ? { 'X-Device-Id': deviceId } : {}),
+    ...(APP_VERSION ? { 'X-App-Version': APP_VERSION } : {}),
+  };
+}
+
+/**
+ * Calls the backend and unwraps its `{ success, data, error }` envelope. A `FormData` body is sent
+ * as multipart (for audio and photo uploads); anything else is JSON.
+ */
+export async function request<T>(path: string, init: RequestInit, timeoutMs: number): Promise<T> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const multipart = typeof FormData !== 'undefined' && init.body instanceof FormData;
   let res: Response;
   try {
     res = await fetch(API_BASE_URL + path, {
@@ -81,11 +99,9 @@ async function request<T>(path: string, init: RequestInit, timeoutMs: number): P
       signal: controller.signal,
       headers: {
         Accept: 'application/json',
-        'Content-Type': 'application/json',
-        ...(API_KEY ? { 'X-API-Key': API_KEY } : {}),
-        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-        ...(deviceId ? { 'X-Device-Id': deviceId } : {}),
-        ...(APP_VERSION ? { 'X-App-Version': APP_VERSION } : {}),
+        // fetch sets the multipart boundary itself.
+        ...(multipart ? {} : { 'Content-Type': 'application/json' }),
+        ...authHeaders(),
       },
     });
   } catch {
@@ -139,6 +155,14 @@ function toEntry(e: ApiEntry): RecipeEntry {
     customNote: e.custom_note ?? undefined,
     origin: e.origin ?? 'instagram',
     generation: e.generation ?? undefined,
+    voice: e.voice
+      ? {
+          url: absolute(e.voice.url),
+          durationSec: e.voice.duration_sec ?? undefined,
+          teller: e.voice.teller ?? undefined,
+          waveform: e.voice.waveform ?? [],
+        }
+      : undefined,
     addedBy: {
       id: String(e.added_by.id),
       name: e.added_by.display_name,

@@ -67,7 +67,30 @@
       "./plugins/with-share-extension-name",
       "expo-video",
       "expo-notifications",
-      "expo-widgets"
+      "expo-widgets",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Tarifini sesle anlatabilmen ve pişirirken sesle komut verebilmen için mikrofon gerekiyor."
+        }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Pişirirken “sonraki”, “tekrar” gibi sesli komutları duyabilmek için mikrofon gerekiyor.",
+          "speechRecognitionPermission": "Sesli komutlarını yazıya çevirebilmek için konuşma tanıma gerekiyor.",
+          "androidSpeechServicePackages": [
+            "com.google.android.googlequicksearchbox"
+          ]
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Pişirdiğin yemeğin fotoğrafını günlüğüne ekleyebilmen için fotoğraflarına erişim gerekiyor.",
+          "cameraPermission": "Pişirdiğin yemeğin fotoğrafını çekebilmen için kamera gerekiyor."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
