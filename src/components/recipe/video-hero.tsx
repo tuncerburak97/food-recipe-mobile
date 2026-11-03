@@ -1,8 +1,8 @@
-import { requireOptionalNativeModule, useEventListener } from 'expo';
+import { requireOptionalNativeModule, useEvent, useEventListener } from 'expo';
 import { Image } from 'expo-image';
 import type { VideoPlayer } from 'expo-video';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Linking, Platform, Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Linking, Platform, Pressable, StyleSheet, View, type GestureResponderEvent, type StyleProp, type ViewStyle } from 'react-native';
 
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
@@ -83,8 +83,138 @@ function Player({ shortcode, clip }: { shortcode: string; clip?: StepClip | null
     p.play();
   });
   useClipLoop(player, clip);
+  // Our own controls instead of the system ones: those sit under the status bar, over the screen's
+  // back and menu buttons, and their full screen mode is hard to leave.
   return (
-    <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="contain" nativeControls fullscreenOptions={{ enable: true }} />
+    <>
+      <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="contain" nativeControls={false} />
+      <Controls player={player} />
+    </>
+  );
+}
+
+/** How long the controls stay on screen while the video plays (ms). */
+const CONTROLS_HIDE = 2600;
+
+// Player changes live outside the component: the React compiler treats props as read-only.
+function setPosition(player: VideoPlayer, sec: number) {
+  player.currentTime = sec;
+}
+function setMuted(player: VideoPlayer, muted: boolean) {
+  player.muted = muted;
+}
+
+function formatTime(sec: number) {
+  const s = Math.max(0, Math.floor(sec));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}
+
+/**
+ * Tap the video to show or hide the controls: play/pause in the middle, the progress (tap to seek),
+ * time and sound at the bottom. While paused they stay on screen.
+ */
+function Controls({ player }: { player: VideoPlayer }) {
+  const { isPlaying } = useEvent(player, 'playingChange', { isPlaying: player.playing });
+  const { muted } = useEvent(player, 'mutedChange', { muted: player.muted });
+  const [time, setTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [visible, setVisible] = useState(true);
+  const [trackWidth, setTrackWidth] = useState(0);
+  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEventListener(player, 'timeUpdate', ({ currentTime }) => setTime(currentTime));
+  useEventListener(player, 'statusChange', ({ status }) => {
+    if (status === 'readyToPlay' && player.duration > 0) setDuration(player.duration);
+  });
+  useEventListener(player, 'sourceLoad', ({ duration: d }) => {
+    if (d > 0) setDuration(d);
+  });
+
+  const scheduleHide = useCallback(() => {
+    if (hideTimer.current) clearTimeout(hideTimer.current);
+    hideTimer.current = setTimeout(() => setVisible(false), CONTROLS_HIDE);
+  }, []);
+
+  useEffect(() => {
+    // While paused the controls are always shown (see `shown`), so only a playing video hides them.
+    if (isPlaying && visible) scheduleHide();
+    else if (hideTimer.current) clearTimeout(hideTimer.current);
+  }, [isPlaying, visible, scheduleHide]);
+
+  useEffect(() => () => {
+    if (hideTimer.current) clearTimeout(hideTimer.current);
+  }, []);
+
+  const togglePlay = () => {
+    if (isPlaying) {
+      player.pause();
+      return;
+    }
+    if (duration > 0 && player.currentTime >= duration - 0.3) setPosition(player, 0);
+    player.play();
+  };
+
+  const seek = (e: GestureResponderEvent) => {
+    if (!trackWidth || !duration) return;
+    // On web the press is a mouse click, which has offsetX instead of locationX.
+    const native = e.nativeEvent as GestureResponderEvent['nativeEvent'] & { offsetX?: number };
+    const x = Number.isFinite(native.locationX) ? native.locationX : native.offsetX;
+    if (x == null || !Number.isFinite(x)) return;
+    const ratio = Math.min(1, Math.max(0, x / trackWidth));
+    setPosition(player, ratio * duration);
+    setTime(ratio * duration);
+    if (isPlaying) scheduleHide();
+  };
+
+  const progress = duration > 0 ? Math.min(1, time / duration) : 0;
+  const shown = visible || !isPlaying;
+
+  return (
+    <Pressable
+      onPress={() => (shown && isPlaying ? setVisible(false) : setVisible(true))}
+      accessibilityLabel="Video kontrollerini göster"
+      style={StyleSheet.absoluteFill}>
+      {shown && (
+        <View style={styles.controls} pointerEvents="box-none">
+          <Pressable
+            onPress={togglePlay}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel={isPlaying ? 'Duraklat' : 'Oynat'}
+            style={({ pressed }) => [styles.center, pressed && { opacity: 0.8 }]}>
+            <Icon name={isPlaying ? 'pause' : 'play'} size={26} color="#fff" style={isPlaying ? undefined : styles.playIcon} />
+          </Pressable>
+          <View style={styles.bar}>
+            <Text variant="caption" weight="600" tint="#fff" style={styles.time}>
+              {formatTime(time)}
+              {duration > 0 ? ` / ${formatTime(duration)}` : ''}
+            </Text>
+            <Pressable
+              onPress={seek}
+              onLayout={(e) => setTrackWidth(e.nativeEvent.layout.width)}
+              hitSlop={{ top: 14, bottom: 14 }}
+              accessibilityRole="adjustable"
+              accessibilityLabel="Videoda ilerle"
+              style={styles.trackHit}>
+              <View style={styles.track} pointerEvents="none">
+                <View style={[styles.fill, { width: `${progress * 100}%` }]} />
+              </View>
+            </Pressable>
+            <Pressable
+              onPress={() => {
+                setMuted(player, !muted);
+                if (isPlaying) scheduleHide();
+              }}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel={muted ? 'Sesi aç' : 'Sesi kapat'}
+              style={styles.sound}>
+              <Icon name={muted ? 'volume-mute' : 'volume-high'} size={17} color="#fff" />
+            </Pressable>
+          </View>
+        </View>
+      )}
+    </Pressable>
   );
 }
 
@@ -178,4 +308,25 @@ const styles = StyleSheet.create({
   playButton: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
   playIcon: { marginLeft: 2 },
   playLabel: { letterSpacing: 0.1 },
+  controls: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.18)' },
+  center: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(20,18,16,0.62)' },
+  bar: {
+    position: 'absolute',
+    left: 12,
+    right: 12,
+    bottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    height: 40,
+    paddingLeft: 12,
+    paddingRight: 4,
+    borderRadius: 20,
+    backgroundColor: 'rgba(20,18,16,0.62)',
+  },
+  time: { fontVariant: ['tabular-nums'] },
+  trackHit: { flex: 1, height: 20, justifyContent: 'center' },
+  track: { height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.3)', overflow: 'hidden' },
+  fill: { height: 4, borderRadius: 2, backgroundColor: '#fff' },
+  sound: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
 });
