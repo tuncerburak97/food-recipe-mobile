@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useEffect } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { CategoryTiles } from '@/components/home/category-tiles';
 import { ChefHero } from '@/components/home/chef-hero';
@@ -25,15 +25,17 @@ import { useCategories, useCreators, useFeed, useGenerations, useMe } from '@/li
 import { tourStorage } from '@/lib/token-storage';
 import { wasSharedThisSession } from '@/store/pending-share';
 
-const RAIL_CARD = 156;
+const RAIL_CARD = 172;
+/** How many of the newest recipes the "Öne çıkan" carousel shows large. */
+const FEATURED = 5;
 /** Home shows the biggest categories (three rows of two); "Tümü" opens Search with every category. */
 const HOME_CATEGORIES = 6;
 
 /**
  * Home. On the page: who you are, one question ("Bugün ne pişirelim?"), search and the two main
- * jobs, one under the other so they read as two features: a dark video card (Instagram) and the
- * orange AI chef. On the sheet: background recipes, the newest recipe large, the latest ones,
- * categories and the Instagram accounts they come from.
+ * jobs as two slim strips, one under the other: a dark video strip (Instagram) and the orange AI
+ * chef. The sheet gives the food the room: background recipes, the newest recipes as large photo
+ * cards to swipe, what the pantry can cook, the latest ones, categories and the accounts.
  */
 export default function HomeScreen() {
   const { colors } = useTheme();
@@ -57,7 +59,10 @@ export default function HomeScreen() {
   const creators = useCreators();
 
   const recentItems = recent.data?.pages[0]?.items ?? [];
-  const [featured, ...rest] = recentItems;
+  const featured = recentItems.slice(0, FEATURED);
+  const rest = recentItems.slice(FEATURED);
+  // The next card peeks in from the right, so the carousel reads as swipeable.
+  const featuredWidth = Math.round(useWindowDimensions().width - ScreenPadding * 2 - 36);
   const categoryCounts = categories.data?.items ?? [];
   const topCreators = (creators.data ?? []).slice(0, 10);
 
@@ -88,9 +93,9 @@ export default function HomeScreen() {
             <Text variant="display" accessibilityRole="header" style={styles.question}>
               Bugün ne pişirelim?
             </Text>
-            <SearchField onPress={() => router.navigate('/search')} placeholder="Tarif, malzeme ya da hesap ara" />
+            <SearchField onPress={() => router.navigate('/search')} placeholder="Tarif, malzeme ya da hesap ara" tone="prominent" />
             <View style={styles.heroes}>
-              <ReelHero entries={recentItems} />
+              <ReelHero />
               <ChefHero />
             </View>
           </>
@@ -98,22 +103,33 @@ export default function HomeScreen() {
         <View style={styles.sheet}>
           <GenerationStatus jobs={generations.data?.items ?? []} />
 
-          <KitchenShortcuts />
-
           {recent.isPending ? (
             <FeaturedSkeleton />
           ) : recent.isError ? (
             <ErrorState {...describeError(recent.error)} onRetry={() => recent.refetch()} />
-          ) : !featured ? (
+          ) : featured.length === 0 ? (
             <EmptyState icon="book-outline" title="Henüz tarif yok" message="Instagram’da beğendiğin bir yemek videosunu ekleyerek başla.">
               <Button title="Videodan tarif ekle" icon="logo-instagram" onPress={() => router.push('/add')} />
             </EmptyState>
           ) : (
             <View style={styles.section}>
               <SectionHeader title="Öne çıkan" action={{ label: 'Tümü', onPress: () => router.navigate('/search') }} />
-              <FeaturedRecipe entry={featured} />
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                decelerationRate="fast"
+                snapToInterval={featuredWidth + 12}
+                snapToAlignment="start"
+                style={styles.bleed}
+                contentContainerStyle={styles.featuredRail}>
+                {featured.map((e) => (
+                  <FeaturedRecipe key={e.id} entry={e} width={featuredWidth} />
+                ))}
+              </ScrollView>
             </View>
           )}
+
+          <KitchenShortcuts />
 
           {rest.length > 0 && (
             <View style={styles.section}>
@@ -163,9 +179,10 @@ function FeaturedSkeleton() {
 
 const styles = StyleSheet.create({
   question: { marginTop: 4 },
-  heroes: { gap: 12, marginTop: 2 },
+  heroes: { gap: 8 },
   sheet: { paddingHorizontal: ScreenPadding, paddingTop: 4, paddingBottom: 32, gap: 32 },
   section: { gap: 14 },
   bleed: { marginHorizontal: -ScreenPadding },
   rail: { paddingHorizontal: ScreenPadding, gap: 14 },
+  featuredRail: { paddingHorizontal: ScreenPadding, gap: 12 },
 });

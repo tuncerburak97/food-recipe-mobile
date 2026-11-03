@@ -66,7 +66,7 @@ export default function SearchScreen() {
     <SheetLayout
       header={
         <PageHeader title="Tarif ara" subtitle={counts?.total ? `${counts.total} tarif arasında ara` : 'Yemek, malzeme ya da hesap adıyla bul'}>
-          <SearchField value={query} onChangeText={setQuery} placeholder="Yemek, malzeme ya da @hesap ara" tone="raised" />
+          <SearchField value={query} onChangeText={setQuery} placeholder="Yemek, malzeme ya da @hesap ara" tone="prominent" />
           <CategoryChips value={category} onChange={setCategory} counts={counts?.items} total={counts?.total} />
           <ChipRow>
             {QUICK_FILTERS.map((f) => {
