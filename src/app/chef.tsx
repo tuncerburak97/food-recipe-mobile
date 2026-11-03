@@ -1,5 +1,5 @@
 import * as Haptics from 'expo-haptics';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
@@ -76,7 +76,13 @@ function toggleIdea(note: string, idea: string): string {
 }
 
 function ChefFlow({ profile }: { profile?: CookProfile }) {
-  const [req, setReq] = useState<ChefRequest>(() => defaultRequest(profile));
+  // Home's AI chef card can open this with ingredients already picked ("Tavuk", or the pantry).
+  const { ingredients: preset } = useLocalSearchParams<{ ingredients?: string }>();
+  const [req, setReq] = useState<ChefRequest>(() => {
+    const base = defaultRequest(profile);
+    const picked = (preset ?? '').split(',').map((x) => x.trim()).filter(Boolean);
+    return picked.length ? { ...base, ingredients: picked } : base;
+  });
   const [index, setIndex] = useState(0);
   const [forward, setForward] = useState(true);
   const [draft, setDraft] = useState('');

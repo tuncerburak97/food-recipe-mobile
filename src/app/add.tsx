@@ -37,12 +37,12 @@ const STEP_LABELS = ['Link', 'Video', 'Tarif'];
  *   3. recipe – API 2 (POST /reels/fetch-recipe) turns its description into a recipe, then save
  */
 export default function AddRecipeScreen() {
-  const { url } = useLocalSearchParams<{ url?: string }>();
+  const { url, paste } = useLocalSearchParams<{ url?: string; paste?: string }>();
   // A new share while this screen is open starts the flow again with the new link.
-  return <AddRecipeFlow key={url ?? ''} initialUrl={url} />;
+  return <AddRecipeFlow key={url ?? ''} initialUrl={url} pasteOnOpen={paste === '1' && !url} />;
 }
 
-function AddRecipeFlow({ initialUrl: sharedUrl }: { initialUrl?: string }) {
+function AddRecipeFlow({ initialUrl: sharedUrl, pasteOnOpen }: { initialUrl?: string; pasteOnOpen?: boolean }) {
   const { colors } = useTheme();
   const saveRecipe = useSaveRecipe();
 
@@ -117,6 +117,14 @@ function AddRecipeFlow({ initialUrl: sharedUrl }: { initialUrl?: string }) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     }
   };
+
+  // Opened from Home's "Yapıştır": paste the copied link once.
+  const pasted = useRef(false);
+  useEffect(() => {
+    if (!pasteOnOpen || pasted.current) return;
+    pasted.current = true;
+    paste().catch(() => setPasteHint(true));
+  });
 
   const save = () => {
     if (!reel) return;
@@ -218,7 +226,7 @@ function AddRecipeFlow({ initialUrl: sharedUrl }: { initialUrl?: string }) {
       footer = (
         <>
           <Text variant="footnote" color="textSecondary" align="center" numberOfLines={2}>
-            Tarif, videonun açıklamasından hazırlanır.
+            Tarif, videoda anlatılanlardan ve açıklamasından hazırlanır.
           </Text>
           <Button title="Tarifi hazırla" trailingIcon="arrow-forward" onPress={() => loadRecipe()} />
           <Button title="Başka link dene" variant="ghost" size="md" onPress={restart} />

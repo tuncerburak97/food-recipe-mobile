@@ -2,23 +2,18 @@ import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 
-import { Icon } from '@/components/ui/icon';
+import { ChefAvatar } from '@/components/ui/chef-avatar';
 import { Text } from '@/components/ui/text';
 import { Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
-export const AVATAR_SIZE = 28;
+export const AVATAR_SIZE = 32;
 /** Space the avatar takes on the left of assistant messages; follow-ups line up with it. */
 export const AVATAR_INDENT = AVATAR_SIZE + 10;
 
-/** The assistant's mark: a small ink circle with a sparkle. */
+/** The assistant's face: the AI chef. */
 export function AssistantAvatar({ size = AVATAR_SIZE }: { size?: number }) {
-  const { colors } = useTheme();
-  return (
-    <View style={[styles.avatar, { width: size, height: size, borderRadius: size / 2, backgroundColor: colors.ink }]}>
-      <Icon name="sparkles-outline" size={Math.round(size * 0.5)} color={colors.onInk} />
-    </View>
-  );
+  return <ChefAvatar size={size} style={styles.avatar} />;
 }
 
 interface Props {
@@ -79,7 +74,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
   left: { justifyContent: 'flex-start', paddingRight: 12 },
   right: { justifyContent: 'flex-end', paddingLeft: 52 },
-  avatar: { alignItems: 'center', justifyContent: 'center', marginTop: 2 },
+  avatar: { marginTop: 2 },
   col: { flexShrink: 1, gap: 10 },
   colRight: { alignItems: 'flex-end' },
   bubble: { borderRadius: Radius.lg, paddingHorizontal: 16, paddingVertical: 11, gap: 6 },
