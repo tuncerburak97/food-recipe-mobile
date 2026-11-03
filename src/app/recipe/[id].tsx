@@ -21,6 +21,7 @@ import { StepList } from '@/components/recipe/step-list';
 import { TranslatedNote } from '@/components/recipe/translated-note';
 import { VideoHero } from '@/components/recipe/video-hero';
 import { VoiceMemo } from '@/components/recipe/voice-memo';
+import { ChefAvatar } from '@/components/ui/chef-avatar';
 import { Button } from '@/components/ui/button';
 import { ErrorState, LoadingState } from '@/components/ui/empty-state';
 import { Icon } from '@/components/ui/icon';
@@ -223,8 +224,8 @@ export default function RecipeScreen() {
             {source && <SourceCreator source={source} first />}
             <ListRow
               first={!source}
-              icon="chatbubble-ellipses-outline"
-              title="Tarif hakkında sor"
+              leading={<ChefAvatar size={40} />}
+              title="AI Şefe sor"
               subtitle="Eksik malzeme, porsiyon, süre… Tarifi sana göre uyarlar."
               onPress={openAssistant}
             />
@@ -300,7 +301,7 @@ export default function RecipeScreen() {
             <Button title="Pişirmeye başla" trailingIcon="arrow-forward" onPress={() => router.push(`/cook/${entry.id}`)} style={styles.flex} />
           </>
         ) : (
-          <Button title="Tarif hakkında sor" icon="chatbubble-ellipses-outline" onPress={openAssistant} style={styles.flex} />
+          <Button title="AI Şefe sor" icon="chatbubble-ellipses-outline" onPress={openAssistant} style={styles.flex} />
         )}
       </StickyFooter>
     </View>

@@ -3,12 +3,13 @@ import { useEffect } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 
 import { CategoryTiles } from '@/components/home/category-tiles';
+import { ChefHero } from '@/components/home/chef-hero';
 import { CreatorRail } from '@/components/home/creator-rail';
-import { FeatureCards } from '@/components/home/feature-cards';
 import { FeaturedRecipe } from '@/components/home/featured-recipe';
 import { GenerationStatus } from '@/components/home/generation-status';
 import { HomeHeader } from '@/components/home/home-header';
 import { KitchenShortcuts } from '@/components/home/kitchen-shortcuts';
+import { ReelHero } from '@/components/home/reel-hero';
 import { RecipeCard } from '@/components/recipe/recipe-card';
 import { Button } from '@/components/ui/button';
 import { EmptyState, ErrorState } from '@/components/ui/empty-state';
@@ -29,8 +30,9 @@ const RAIL_CARD = 156;
 const HOME_CATEGORIES = 6;
 
 /**
- * Home. On the cream page: who you are, one question ("Bugün ne pişirelim?"), search and the two
- * main jobs. On the white sheet: background recipes, the newest recipe large, the latest ones,
+ * Home. On the page: who you are, one question ("Bugün ne pişirelim?"), search and the two main
+ * jobs, one under the other so they read as two features: a dark video card (Instagram) and the
+ * orange AI chef. On the sheet: background recipes, the newest recipe large, the latest ones,
  * categories and the Instagram accounts they come from.
  */
 export default function HomeScreen() {
@@ -87,7 +89,10 @@ export default function HomeScreen() {
               Bugün ne pişirelim?
             </Text>
             <SearchField onPress={() => router.navigate('/search')} placeholder="Tarif, malzeme ya da hesap ara" />
-            <FeatureCards />
+            <View style={styles.heroes}>
+              <ReelHero entries={recentItems} />
+              <ChefHero />
+            </View>
           </>
         }>
         <View style={styles.sheet}>
@@ -158,6 +163,7 @@ function FeaturedSkeleton() {
 
 const styles = StyleSheet.create({
   question: { marginTop: 4 },
+  heroes: { gap: 12, marginTop: 2 },
   sheet: { paddingHorizontal: ScreenPadding, paddingTop: 4, paddingBottom: 32, gap: 32 },
   section: { gap: 14 },
   bleed: { marginHorizontal: -ScreenPadding },

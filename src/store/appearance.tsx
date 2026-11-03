@@ -1,4 +1,5 @@
 import { createContext, use, useEffect, useState, type ReactNode } from 'react';
+import { Appearance as NativeAppearance } from 'react-native';
 
 import { appearanceStorage } from '@/lib/token-storage';
 
@@ -23,6 +24,16 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
       })
       .catch(() => {});
   }, []);
+
+  // The phone's own parts (keyboard, alerts, status bar, screen backgrounds) follow the choice too,
+  // so they stay light even when the phone is in dark mode. "system" hands them back to the phone.
+  useEffect(() => {
+    try {
+      NativeAppearance.setColorScheme(appearance === 'system' ? 'unspecified' : appearance);
+    } catch {
+      // not supported on this platform (web)
+    }
+  }, [appearance]);
 
   const setAppearance = (value: Appearance) => {
     setState(value);

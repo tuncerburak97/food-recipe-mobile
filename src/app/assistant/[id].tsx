@@ -4,19 +4,19 @@ import { useRef, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View, type ScrollViewInstance } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AVATAR_INDENT, AssistantAvatar, ChatBubble } from '@/components/assistant/chat-bubble';
+import { AVATAR_INDENT, ChatBubble } from '@/components/assistant/chat-bubble';
+import { ChefAvatar } from '@/components/ui/chef-avatar';
 import { Composer } from '@/components/assistant/composer';
 import { ProposalCard } from '@/components/assistant/proposal-card';
 import { StarterQuestions, SuggestionChips } from '@/components/assistant/suggestion-chips';
 import { TypingIndicator } from '@/components/assistant/typing-indicator';
 import { useKeyboardVisible } from '@/components/assistant/use-keyboard-visible';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { ErrorState, LoadingState } from '@/components/ui/empty-state';
 import { StickyFooter } from '@/components/ui/layout';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { Text } from '@/components/ui/text';
-import { ScreenPadding } from '@/constants/theme';
+import { Radius, ScreenPadding } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { api, describeError } from '@/lib/api';
 import { capitalize } from '@/lib/format';
@@ -58,7 +58,7 @@ export default function AssistantScreen() {
   if (!entry) {
     return (
       <View style={[styles.screen, { backgroundColor: colors.surface }]}>
-        <ScreenHeader leading="close" title="Yemek Asistanı" tone="muted" safeTop={SAFE_TOP} />
+        <ScreenHeader leading="close" title="AI Şef" tone="muted" safeTop={SAFE_TOP} />
         {recipeQuery.isError ? (
           <ErrorState
             title="Tarif açılamadı"
@@ -136,7 +136,7 @@ export default function AssistantScreen() {
   return (
     <KeyboardAvoidingView behavior="padding" style={[styles.screen, { backgroundColor: colors.surface }]}>
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <ScreenHeader leading="close" title="Yemek Asistanı" subtitle={recipe.title} tone="muted" safeTop={SAFE_TOP} />
+        <ScreenHeader leading="close" title="AI Şef" subtitle={recipe.title} tone="muted" safeTop={SAFE_TOP} />
       </View>
 
       <ScrollView
@@ -147,17 +147,20 @@ export default function AssistantScreen() {
         keyboardDismissMode="interactive"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.body}>
-        <Card tone="muted">
-          <View style={styles.intro}>
-            <AssistantAvatar size={36} />
-            <View style={styles.introText}>
-              <Text variant="title3">Bu tarif hakkında ne istersen sor</Text>
-              <Text variant="subhead" color="textSecondary">
-                Eksik malzeme, porsiyon, süre, saklama… İstersen tarifi sana göre de uyarlarım.
-              </Text>
-            </View>
+        <View style={[styles.intro, { backgroundColor: colors.accentSoft }]}>
+          <ChefAvatar size={76} ring />
+          <View style={styles.introText}>
+            <Text variant="overline" color="accent">
+              AI ŞEF
+            </Text>
+            <Text variant="title2" align="center">
+              Bu tarifte takıldığın her şeyi sor
+            </Text>
+            <Text variant="subhead" color="textSecondary" align="center">
+              Eksik malzeme, porsiyon, süre, saklama… İstersen tarifi senin mutfağına göre uyarlarım.
+            </Text>
           </View>
-        </Card>
+        </View>
 
         {items.length === 0 && <StarterQuestions items={starterQuestions(recipe)} onPick={send} disabled={busy} />}
 
@@ -203,8 +206,8 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   header: { borderBottomWidth: StyleSheet.hairlineWidth },
   body: { paddingHorizontal: ScreenPadding, paddingTop: 20, paddingBottom: 20, gap: 16 },
-  intro: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  introText: { flex: 1, gap: 4 },
+  intro: { alignItems: 'center', gap: 14, paddingHorizontal: 20, paddingTop: 24, paddingBottom: 22, borderRadius: Radius.xl },
+  introText: { alignItems: 'center', gap: 6 },
   retry: { alignSelf: 'flex-start' },
   followUps: { paddingLeft: AVATAR_INDENT },
   footer: { paddingTop: 10 },
