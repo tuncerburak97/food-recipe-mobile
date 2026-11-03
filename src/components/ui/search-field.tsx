@@ -12,18 +12,26 @@ interface Props {
   autoFocus?: boolean;
   /** When set, the field is a button (e.g. on Home it opens the search tab). */
   onPress?: () => void;
-  /** 'raised' (white with a hairline) on the cream page, 'sunken' (muted fill) on white sheets. */
-  tone?: 'raised' | 'sunken';
+  /**
+   * 'raised' (white with a hairline) on the page, 'sunken' (muted fill) on white sheets, 'prominent'
+   * (taller, crisp border and a soft shadow) for Home's main search.
+   */
+  tone?: 'raised' | 'sunken' | 'prominent';
 }
 
 export function SearchField({ value = '', onChangeText, placeholder = 'Tarif ya da malzeme ara', autoFocus, onPress, tone = 'raised' }: Props) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
+  const prominent = tone === 'prominent';
   const box = [
     styles.box,
-    tone === 'raised'
-      ? { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: StyleSheet.hairlineWidth }
-      : { backgroundColor: colors.surfaceMuted },
+    prominent
+      ? // A slightly darker edge than the hairline cards, so the main search reads first.
+        [styles.prominent, { backgroundColor: colors.surface, borderColor: isDark ? colors.border : '#D3D9E1', shadowColor: colors.text }]
+      : tone === 'raised'
+        ? { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: StyleSheet.hairlineWidth }
+        : { backgroundColor: colors.surfaceMuted },
   ];
+  const iconColor = prominent ? colors.text : colors.textSecondary;
 
   if (onPress) {
     return (
@@ -32,8 +40,8 @@ export function SearchField({ value = '', onChangeText, placeholder = 'Tarif ya 
         accessibilityRole="search"
         accessibilityLabel={placeholder}
         style={({ pressed }) => [box, pressed && styles.pressed]}>
-        <Icon name="search" size={18} color={colors.textSecondary} />
-        <Text variant="callout" color="textTertiary" numberOfLines={1} style={styles.flex}>
+        <Icon name="search" size={prominent ? 20 : 18} color={iconColor} />
+        <Text variant={prominent ? 'body' : 'callout'} color={prominent ? 'textSecondary' : 'textTertiary'} numberOfLines={1} style={styles.flex}>
           {placeholder}
         </Text>
       </Pressable>
@@ -42,7 +50,7 @@ export function SearchField({ value = '', onChangeText, placeholder = 'Tarif ya 
 
   return (
     <View style={box}>
-      <Icon name="search" size={18} color={colors.textSecondary} />
+      <Icon name="search" size={prominent ? 20 : 18} color={iconColor} />
       <TextInput
         value={value}
         onChangeText={onChangeText}
@@ -72,6 +80,17 @@ const styles = StyleSheet.create({
     minHeight: TouchSize,
     paddingHorizontal: 16,
     borderRadius: Radius.pill,
+  },
+  prominent: {
+    minHeight: 54,
+    paddingHorizontal: 18,
+    gap: 12,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
   },
   flex: { flex: 1 },
   pressed: { opacity: 0.8 },

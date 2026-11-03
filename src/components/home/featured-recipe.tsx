@@ -12,8 +12,11 @@ import { Radius } from '@/constants/theme';
 import { CATEGORY_LABELS, formatMinutes, servingsText, totalMinutes, upperTr } from '@/lib/format';
 import type { RecipeEntry } from '@/lib/types';
 
-/** A large photo card with the title set on the image, for the newest recipe on Home. */
-export function FeaturedRecipe({ entry }: { entry: RecipeEntry }) {
+/**
+ * A large photo card with the title set on the image, for Home's "Öne çıkan" carousel. Without a
+ * width it fills its container.
+ */
+export function FeaturedRecipe({ entry, width }: { entry: RecipeEntry; width?: number }) {
   const { recipe } = entry;
   const minutes = totalMinutes(recipe);
   const facts = [minutes != null ? formatMinutes(minutes) : null, servingsText(recipe)].filter(Boolean).join(' · ');
@@ -24,7 +27,7 @@ export function FeaturedRecipe({ entry }: { entry: RecipeEntry }) {
       scaleTo={0.985}
       accessibilityRole="button"
       accessibilityLabel={`${recipe.title}${facts ? `, ${facts}` : ''}`}
-      style={styles.card}>
+      style={[styles.card, width ? { width } : null]}>
       {entry.imageUrl ? (
         <Image source={entry.imageUrl} style={StyleSheet.absoluteFill} contentFit="cover" transition={250} />
       ) : (
@@ -63,7 +66,7 @@ export function FeaturedRecipe({ entry }: { entry: RecipeEntry }) {
 }
 
 const styles = StyleSheet.create({
-  card: { aspectRatio: 1.08, borderRadius: Radius.xl, overflow: 'hidden', justifyContent: 'space-between' },
+  card: { aspectRatio: 0.92, borderRadius: Radius.xl, overflow: 'hidden', justifyContent: 'space-between' },
   top: { padding: 14 },
   text: { padding: 18, gap: 6 },
   meta: { flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap' },
