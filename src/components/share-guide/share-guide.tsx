@@ -34,7 +34,7 @@ import { Radius, ScreenPadding } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { upperTr } from '@/lib/format';
 
-const APP_ICON = require('../../../assets/app-icon.png');
+const APP_ICON = require('../../../assets/icon/icon.png');
 const APP_NAME = 'Tarif Defteri';
 const ART_HEIGHT = 280;
 /** From the first "Öneriler" row up to the empty "Favoriler" row in the edit-list picture. */
