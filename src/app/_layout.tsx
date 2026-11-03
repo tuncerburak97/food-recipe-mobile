@@ -71,7 +71,7 @@ function RootStack() {
     previous.current = status;
     if (!finishedOnboarding) return;
     const link = takePendingShare();
-    if (link) setTimeout(() => router.push(`/add?url=${encodeURIComponent(link)}`), 300);
+    if (link) setTimeout(() => router.push(`/add?url=${encodeURIComponent(link)}&shared=1`), 300);
   }, [status]);
 
   if (!ready) return null;

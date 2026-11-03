@@ -1,7 +1,8 @@
 import { useEffect, useEffectEvent, useState, type ReactNode } from 'react';
 import { BackHandler, Keyboard, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 
-import { DislikesStep } from '@/components/onboarding/dislikes-step';
+import { AvoidStep } from '@/components/onboarding/avoid-step';
+import { DemoStep } from '@/components/onboarding/demo-step';
 import { HeroStep } from '@/components/onboarding/hero-step';
 import { NameStep } from '@/components/onboarding/name-step';
 import { StepPage, TopBar } from '@/components/onboarding/onboarding-shell';
@@ -13,22 +14,32 @@ import {
   LAST_QUESTION,
   QUESTIONS,
   STEPS,
-  summaryRows,
   type MultiField,
   type MultiQuestion,
   type SingleField,
   type StepId,
 } from '@/components/onboarding/steps';
-import { SummaryStep } from '@/components/onboarding/summary-step';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/hooks/use-theme';
 import { emptyProfile, personaFor, type CookProfile } from '@/lib/profile';
+import { tourStorage } from '@/lib/token-storage';
 import { useSession } from '@/store/session';
 
+/** Short label of each question, shown over its title with the question number. */
+const KICKERS: Partial<Record<StepId, string>> = {
+  name: 'Sen',
+  goals: 'Beklentin',
+  household: 'Sofran',
+  minutes: 'Vaktin',
+  skill: 'Deneyimin',
+  cuisines: 'Damak zevkin',
+  avoid: 'Hassasiyetler',
+};
+
 /**
- * First-run onboarding: a short intro, plain questions about cooking habits, and a summary. One route
- * with an internal step index, so every answer lives in one profile object. Finishing calls
- * completeOnboarding; the root guard then shows Home.
+ * First-run onboarding: an intro, a live demo (a video turns into a recipe), seven short questions
+ * and an animated "setting up" moment that saves the profile and opens the app by itself. One route
+ * with an internal step index, so every answer lives in one profile object.
  */
 export default function OnboardingScreen() {
   const { colors } = useTheme();
@@ -48,8 +59,7 @@ export default function OnboardingScreen() {
     setIndex(Math.max(0, Math.min(STEPS.length - 1, to)));
   };
   const next = () => goTo(index + 1);
-  // The ten-second preparing moment is not replayed when going back from the summary.
-  const back = () => goTo(step === 'summary' ? LAST_QUESTION : index - 1);
+  const back = () => goTo(index - 1);
 
   const answerSingle = (field: SingleField, value: string | number) => {
     setProfile((p) => ({ ...p, [field]: value }) as CookProfile);
@@ -82,7 +92,18 @@ export default function OnboardingScreen() {
     return () => sub.remove();
   }, []);
 
-  const finish = () => completeOnboarding(displayName, { ...profile, persona: personaFor(profile).title });
+  // The app tour is not needed after the demo; the user goes straight to Home.
+  const finish = async () => {
+    await tourStorage.set('1').catch(() => {});
+    await completeOnboarding(displayName, { ...profile, persona: personaFor(profile).title });
+  };
+
+  const isQuestion = index >= FIRST_QUESTION && index <= LAST_QUESTION;
+  // Progress counts the questions only: the first question shows a sliver, the last one a full bar.
+  const questionCount = LAST_QUESTION - FIRST_QUESTION + 1;
+  const questionNumber = index - FIRST_QUESTION + 1;
+  const progress = questionNumber / questionCount;
+  const kicker = isQuestion && KICKERS[step] ? `${questionNumber} / ${questionCount} · ${KICKERS[step]}`.toLocaleUpperCase('tr') : undefined;
 
   let content: ReactNode = null;
   const q = QUESTIONS[step];
@@ -90,6 +111,7 @@ export default function OnboardingScreen() {
   if (q?.kind === 'single') {
     content = (
       <QuestionStep
+        kicker={kicker}
         title={q.title}
         subtitle={q.subtitle}
         footer={<Button title="Devam" trailingIcon="arrow-forward" onPress={next} disabled={profile[q.field] == null} />}>
@@ -101,6 +123,7 @@ export default function OnboardingScreen() {
     const count = values.length;
     content = (
       <QuestionStep
+        kicker={kicker}
         title={q.title}
         subtitle={q.subtitle}
         footer={<Button title={count ? `Devam · ${count} seçili` : 'Devam'} trailingIcon="arrow-forward" onPress={next} />}>
@@ -119,26 +142,20 @@ export default function OnboardingScreen() {
       case 'hero':
         content = <HeroStep onStart={next} />;
         break;
-      case 'name':
-        content = <NameStep name={name} onChange={setName} onNext={next} />;
+      case 'demo':
+        content = <DemoStep onNext={next} />;
         break;
-      case 'dislikes':
-        content = <DislikesStep values={profile.dislikes} onChange={(dislikes) => setProfile((p) => ({ ...p, dislikes }))} onNext={next} />;
+      case 'name':
+        content = <NameStep kicker={kicker} name={name} onChange={setName} onNext={next} />;
+        break;
+      case 'avoid':
+        content = <AvoidStep kicker={kicker} profile={profile} onChange={(patch) => setProfile((p) => ({ ...p, ...patch }))} onNext={next} />;
         break;
       case 'preparing':
-        content = <PreparingStep name={displayName} onDone={next} />;
-        break;
-      case 'summary':
-        content = <SummaryStep name={displayName} rows={summaryRows(profile)} onFinish={finish} onEdit={() => goTo(FIRST_QUESTION)} />;
+        content = <PreparingStep name={displayName} profile={profile} onFinish={finish} />;
         break;
     }
   }
-
-  const isQuestion = index >= FIRST_QUESTION && index <= LAST_QUESTION;
-  // Progress counts the questions only: the first question shows a sliver, the last one a full bar.
-  const questionCount = LAST_QUESTION - FIRST_QUESTION + 1;
-  const questionNumber = index - FIRST_QUESTION + 1;
-  const progress = questionNumber / questionCount;
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={[styles.screen, { backgroundColor: colors.surface }]}>

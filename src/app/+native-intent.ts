@@ -24,5 +24,5 @@ export function redirectSystemPath({ path }: { path: string; initial: boolean })
   const link = extractInstagramLink(shared) ?? shared.trim();
   // Also kept aside: on first launch onboarding comes first, and the link opens right after it.
   if (link) setPendingShare(link);
-  return link ? `/add?url=${encodeURIComponent(link)}` : '/add';
+  return link ? `/add?url=${encodeURIComponent(link)}&shared=1` : '/add';
 }

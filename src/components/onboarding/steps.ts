@@ -1,43 +1,25 @@
-import {
-  ALLERGY,
-  BUDGET,
-  CUISINE,
-  DIET,
-  EQUIPMENT,
-  FREQUENCY,
-  GOALS,
-  HOUSEHOLD,
-  MINUTES,
-  SKILL,
-  SPICE,
-  type CookProfile,
-  type Option,
-} from '@/lib/profile';
+import { ALLERGY, BUDGET, CUISINE, DIET, EQUIPMENT, FREQUENCY, GOALS, HOUSEHOLD, MINUTES, SKILL, SPICE, type Option } from '@/lib/profile';
 
-/** Every screen of the onboarding, in order. One route, one state object, internal step index. */
-export const STEPS = [
-  'hero',
-  'name',
-  'household',
-  'frequency',
-  'skill',
-  'minutes',
-  'diet',
-  'allergies',
-  'dislikes',
-  'cuisines',
-  'spice',
-  'equipment',
-  'goals',
-  'budget',
-  'preparing',
-  'summary',
-] as const;
+/**
+ * Every screen of the onboarding, in order. One route, one state object, internal step index.
+ * The demo comes first so the user sees a video turn into a recipe before any question. Spice,
+ * equipment, budget and cooking frequency are not asked here; they stay editable in Profil.
+ */
+export const STEPS = ['hero', 'demo', 'name', 'goals', 'household', 'minutes', 'skill', 'cuisines', 'avoid', 'preparing'] as const;
 
-export type StepId = (typeof STEPS)[number];
+/** Every question id, the onboarding ones and those only on the profile screen. */
+export type StepId =
+  | (typeof STEPS)[number]
+  | 'frequency'
+  | 'diet'
+  | 'allergies'
+  | 'dislikes'
+  | 'spice'
+  | 'equipment'
+  | 'budget';
 
 export const FIRST_QUESTION = STEPS.indexOf('name');
-export const LAST_QUESTION = STEPS.indexOf('budget');
+export const LAST_QUESTION = STEPS.indexOf('avoid');
 
 export const MAX_DISLIKES = 15;
 export const MAX_GOALS = 3;
@@ -70,8 +52,12 @@ export interface MultiQuestion extends StepCopy {
 }
 
 export const COPY = {
-  name: { title: 'Sana nasıl hitap edelim?', subtitle: 'İstersen boş bırakabilirsin.' },
-  dislikes: { title: 'Sevmediğin malzemeler var mı?', subtitle: 'Bunları tariflerinde kullanmayız.' },
+  name: { title: 'Mutfakta sana nasıl seslenelim?', subtitle: 'AI Şef seni adınla karşılasın. İstersen boş bırak.' },
+  dislikes: { title: 'Sevmediğin malzemeler var mı?', subtitle: 'AI Şef bunları tariflerine koymaz.' },
+  avoid: {
+    title: 'Tabağına girmesin dediklerin',
+    subtitle: 'AI Şef yazdığı her tarifte bunlara uyar. Hiçbiri yoksa doğrudan devam et.',
+  },
 } satisfies Record<string, StepCopy>;
 
 export const QUESTIONS: Partial<Record<StepId, SingleQuestion | MultiQuestion>> = {
@@ -79,8 +65,8 @@ export const QUESTIONS: Partial<Record<StepId, SingleQuestion | MultiQuestion>> 
     kind: 'single',
     field: 'household',
     options: HOUSEHOLD,
-    title: 'Genellikle kaç kişilik yemek yapıyorsun?',
-    subtitle: 'Porsiyonları buna göre ayarlarız.',
+    title: 'Sofrana genelde kaç tabak koyuyorsun?',
+    subtitle: 'Tarifler bu porsiyonla gelir; her tarifte tek dokunuşla değiştirirsin.',
   },
   frequency: {
     kind: 'single',
@@ -93,15 +79,15 @@ export const QUESTIONS: Partial<Record<StepId, SingleQuestion | MultiQuestion>> 
     kind: 'single',
     field: 'skill',
     options: SKILL,
-    title: 'Mutfakta kendini nasıl tanımlarsın?',
-    subtitle: 'Tariflerin zorluğunu ve anlatımını buna göre seçeriz.',
+    title: 'Mutfaktaki halin hangisi?',
+    subtitle: 'AI Şef anlatımını ve tariflerin zorluğunu sana göre ayarlar.',
   },
   minutes: {
     kind: 'single',
     field: 'weeknight_minutes',
     options: MINUTES,
-    title: 'Hafta içi yemeğe genellikle ne kadar vakit ayırırsın?',
-    subtitle: 'Bu süreye uygun tarifleri öne çıkarırız.',
+    title: 'Hafta içi bir akşam, yemeğe ne kadar vaktin var?',
+    subtitle: 'Bu süreye sığan tarifleri öne çıkarırız.',
   },
   diet: {
     kind: 'multi',
@@ -125,8 +111,8 @@ export const QUESTIONS: Partial<Record<StepId, SingleQuestion | MultiQuestion>> 
     kind: 'multi',
     field: 'cuisines',
     options: CUISINE,
-    title: 'Hangi mutfakları seversin?',
-    subtitle: 'Önerilerde bunlara öncelik veririz.',
+    title: 'Hangi lezzetler seni çağırıyor?',
+    subtitle: 'Birkaç tane seç; AI Şef önerilerinde bunlara öncelik verir.',
   },
   spice: {
     kind: 'single',
@@ -150,8 +136,8 @@ export const QUESTIONS: Partial<Record<StepId, SingleQuestion | MultiQuestion>> 
     field: 'goals',
     options: GOALS,
     max: MAX_GOALS,
-    title: 'Önceliğin nedir?',
-    subtitle: `En fazla ${MAX_GOALS} tane seçebilirsin.`,
+    title: 'Bu uygulamadan en çok ne bekliyorsun?',
+    subtitle: `En fazla ${MAX_GOALS} tane seç; tarifler ve öneriler buna göre şekillenir.`,
   },
   budget: {
     kind: 'single',
@@ -161,31 +147,3 @@ export const QUESTIONS: Partial<Record<StepId, SingleQuestion | MultiQuestion>> 
     subtitle: 'Malzeme önerilerini buna göre yaparız.',
   },
 };
-
-function labelsOf<T extends string | number>(options: Option<T>[], values: readonly T[]): string {
-  return values
-    .map((v) => options.find((o) => o.value === v)?.label)
-    .filter(Boolean)
-    .join(', ');
-}
-
-/** The answers as plain rows for the summary screen ("Kaç kişi": "2 kişi"). Unanswered ones are left out. */
-export function summaryRows(p: CookProfile): { label: string; value: string }[] {
-  const rows: { label: string; value: string }[] = [];
-  const add = (label: string, value: string | undefined) => {
-    if (value) rows.push({ label, value });
-  };
-  add('Kaç kişi', HOUSEHOLD.find((o) => o.value === p.household)?.hint);
-  add('Sıklık', labelsOf(FREQUENCY, p.cooking_frequency ? [p.cooking_frequency] : []));
-  add('Deneyim', labelsOf(SKILL, p.skill ? [p.skill] : []));
-  add('Süre', labelsOf(MINUTES, p.weeknight_minutes ? [p.weeknight_minutes] : []));
-  add('Beslenme', labelsOf(DIET, p.diet));
-  add('Alerjiler', labelsOf(ALLERGY, p.allergies));
-  add('Sevmedikleri', p.dislikes.join(', '));
-  add('Mutfaklar', labelsOf(CUISINE, p.cuisines));
-  add('Acı', labelsOf(SPICE, p.spice ? [p.spice] : []));
-  add('Aletler', labelsOf(EQUIPMENT, p.equipment));
-  add('Öncelikler', labelsOf(GOALS, p.goals));
-  add('Bütçe', labelsOf(BUDGET, p.budget ? [p.budget] : []));
-  return rows;
-}

@@ -29,3 +29,7 @@ export const onboardedStorage = secureValue('onboarded.v1');
 export const appearanceStorage = secureValue('appearance.v1');
 /** "1" once the user has seen the app tour (shown once after onboarding). */
 export const tourStorage = secureValue('tour.v1');
+/** "1" once the Instagram share guide was shown from Home ("Videodan tarife"). */
+export const shareGuideHomeStorage = secureValue('share-guide.home.v1');
+/** "1" once the Instagram share guide was shown after the first link shared into the app. */
+export const shareGuideSharedStorage = secureValue('share-guide.shared.v1');
