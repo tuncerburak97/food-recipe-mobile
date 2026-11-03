@@ -1,9 +1,11 @@
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
+import { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { KitchenListGroup } from '@/components/kitchen/kitchen-list-group';
+import { ShareGuide } from '@/components/share-guide/share-guide';
 import { Avatar } from '@/components/ui/avatar';
 import { SheetHeader, sheetScrollStyles } from '@/components/ui/layout';
 import { ListGroup, ListRow } from '@/components/ui/list';
@@ -29,6 +31,7 @@ export default function SettingsScreen() {
   const scroll = sheetScrollStyles(colors);
   const me = useMe().data;
   const { signOut } = useSession();
+  const [guide, setGuide] = useState(false);
   const { appearance, setAppearance } = useAppearance();
   const p = me?.profile;
   const name = me?.name || 'Misafir';
@@ -93,6 +96,12 @@ export default function SettingsScreen() {
 
         <ListGroup title="Uygulama">
           <ListRow first icon="map-outline" title="Uygulamayı tanı" subtitle="Özelliklerin kısa tanıtımı" onPress={() => router.push('/tour')} />
+          <ListRow
+            icon="logo-instagram"
+            title="Instagram paylaşımını kur"
+            subtitle="Paylaş menüsünde Tarif Defteri ilk sırada olsun"
+            onPress={() => setGuide(true)}
+          />
           <ListRow icon="information-circle-outline" title="Sürüm" value={Constants.expoConfig?.version ?? '-'} />
           <ListRow
             icon="refresh-outline"
@@ -103,6 +112,7 @@ export default function SettingsScreen() {
             accessibilityHint="Önce onay ister"
           />
         </ListGroup>
+        <ShareGuide visible={guide} onClose={() => setGuide(false)} context="settings" />
       </SheetHeader>
     </ScrollView>
   );

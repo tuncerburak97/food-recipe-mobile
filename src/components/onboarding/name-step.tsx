@@ -9,13 +9,15 @@ interface Props {
   name: string;
   onChange: (name: string) => void;
   onNext: () => void;
+  kicker?: string;
 }
 
-export function NameStep({ name, onChange, onNext }: Props) {
+export function NameStep({ name, onChange, onNext, kicker }: Props) {
   const trimmed = name.trim();
 
   return (
     <QuestionStep
+      kicker={kicker}
       title={COPY.name.title}
       subtitle={COPY.name.subtitle}
       footer={<Button title={trimmed ? 'Devam' : 'İsimsiz devam et'} trailingIcon="arrow-forward" onPress={onNext} />}>

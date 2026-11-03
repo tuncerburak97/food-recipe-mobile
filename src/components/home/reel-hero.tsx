@@ -1,6 +1,8 @@
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { ShareGuide } from '@/components/share-guide/share-guide';
+import { useShareGuideOnce } from '@/components/share-guide/use-share-guide';
 import { Icon } from '@/components/ui/icon';
 import { PressableScale } from '@/components/ui/pressable-scale';
 import { Text } from '@/components/ui/text';
@@ -12,15 +14,18 @@ const FAINT = 'rgba(255,255,255,0.62)';
 
 /**
  * Home, feature one, as a slim strip: turn an Instagram video into a recipe. The strip opens "Ekle";
- * "Yapıştır" opens it and pastes the copied link.
+ * "Yapıştır" opens it and pastes the copied link. The first tap shows how to put the app first in
+ * Instagram's share menu, then opens "Ekle".
  */
 export function ReelHero() {
+  const guide = useShareGuideOnce('home');
   return (
     <View style={styles.strip}>
+      <ShareGuide visible={guide.visible} onClose={guide.close} context="home" />
       <PressableScale
         haptic
         scaleTo={0.985}
-        onPress={() => router.push('/add')}
+        onPress={() => guide.offer(() => router.push('/add'))}
         accessibilityRole="button"
         accessibilityLabel="Videodan tarife. Instagram Reels linkini yapıştır, tarif çıkarılsın."
         style={styles.main}>

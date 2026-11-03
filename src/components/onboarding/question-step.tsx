@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Platform, ScrollView, StyleSheet, View } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { TOP_BAR_HEIGHT } from '@/components/onboarding/onboarding-shell';
@@ -10,6 +11,8 @@ import { Radius, ScreenPadding } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 interface Props {
+  /** Small line over the title, e.g. "2 / 7 · Sofran". */
+  kicker?: string;
   title: string;
   subtitle: string;
   children?: ReactNode;
@@ -18,7 +21,7 @@ interface Props {
 }
 
 /** Layout of every question: the question, a why-we-ask line, the answers, and "Devam" pinned below. */
-export function QuestionStep({ title, subtitle, children, footer }: Props) {
+export function QuestionStep({ kicker, title, subtitle, children, footer }: Props) {
   const insets = useSafeAreaInsets();
 
   return (
@@ -32,14 +35,19 @@ export function QuestionStep({ title, subtitle, children, footer }: Props) {
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
         showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <Text variant="title" accessibilityRole="header">
+        <Animated.View entering={FadeInDown.duration(300)} style={styles.header}>
+          {kicker ? (
+            <Text variant="overline" color="accentText">
+              {kicker}
+            </Text>
+          ) : null}
+          <Text variant="display" accessibilityRole="header">
             {title}
           </Text>
-          <Text variant="callout" color="textSecondary">
+          <Text variant="body" color="textSecondary">
             {subtitle}
           </Text>
-        </View>
+        </Animated.View>
         {children}
       </ScrollView>
       {footer ? <StickyFooter>{footer}</StickyFooter> : null}
@@ -65,7 +73,7 @@ export function QuestionNote({ text, icon = 'information-circle' }: { text: stri
 const styles = StyleSheet.create({
   page: { flex: 1 },
   content: { paddingHorizontal: ScreenPadding, gap: 20 },
-  header: { gap: 8, marginBottom: 4 },
+  header: { gap: 10, marginBottom: 6 },
   note: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 14, borderRadius: Radius.md },
   noteWell: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
   noteText: { flex: 1 },

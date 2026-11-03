@@ -10,6 +10,8 @@ import { LinkGuide } from '@/components/add/link-guide';
 import { RecipePreview } from '@/components/add/recipe-preview';
 import { ReelPreview, ReelPreviewLoading } from '@/components/add/reel-preview';
 import { StepIndicator } from '@/components/add/step-indicator';
+import { ShareGuide } from '@/components/share-guide/share-guide';
+import { useShareGuideOnce } from '@/components/share-guide/use-share-guide';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Icon } from '@/components/ui/icon';
@@ -37,14 +39,25 @@ const STEP_LABELS = ['Link', 'Video', 'Tarif'];
  *   3. recipe – API 2 (POST /reels/fetch-recipe) turns its description into a recipe, then save
  */
 export default function AddRecipeScreen() {
-  const { url, paste } = useLocalSearchParams<{ url?: string; paste?: string }>();
+  const { url, paste, shared } = useLocalSearchParams<{ url?: string; paste?: string; shared?: string }>();
   // A new share while this screen is open starts the flow again with the new link.
-  return <AddRecipeFlow key={url ?? ''} initialUrl={url} pasteOnOpen={paste === '1' && !url} />;
+  return <AddRecipeFlow key={url ?? ''} initialUrl={url} pasteOnOpen={paste === '1' && !url} fromShare={shared === '1'} />;
 }
 
-function AddRecipeFlow({ initialUrl: sharedUrl, pasteOnOpen }: { initialUrl?: string; pasteOnOpen?: boolean }) {
+/** Wait before the share guide slides over a shared link, so the user first sees the video found (ms). */
+const SHARE_GUIDE_DELAY = 1800;
+
+function AddRecipeFlow({ initialUrl: sharedUrl, pasteOnOpen, fromShare }: { initialUrl?: string; pasteOnOpen?: boolean; fromShare?: boolean }) {
   const { colors } = useTheme();
   const saveRecipe = useSaveRecipe();
+  // Came in through Instagram's share menu ("Diğer" → this app): show once how to keep the app first there.
+  const guide = useShareGuideOnce('shared');
+  const { offer } = guide;
+  useEffect(() => {
+    if (!fromShare) return;
+    const t = setTimeout(() => offer(), SHARE_GUIDE_DELAY);
+    return () => clearTimeout(t);
+  }, [fromShare, offer]);
 
   const initialLink = sharedUrl ? extractInstagramLink(sharedUrl) : null;
   const [phase, setPhase] = useState<Phase>(initialLink ? 'reel' : 'link');
@@ -266,6 +279,7 @@ function AddRecipeFlow({ initialUrl: sharedUrl, pasteOnOpen }: { initialUrl?: st
 
   return (
     <KeyboardAvoidingView behavior="padding" style={[styles.screen, { backgroundColor: colors.surface }]}>
+      <ShareGuide visible={guide.visible} onClose={guide.close} context="shared" />
       <ScreenHeader leading="close" title="Videodan tarif" tone="muted" safeTop={Platform.OS !== 'ios'} />
       <View style={[styles.steps, { borderBottomColor: colors.border }]}>
         <StepIndicator steps={STEP_LABELS} current={stepIndex} currentDone={stepDone} />
