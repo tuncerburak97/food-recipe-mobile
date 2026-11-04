@@ -2,7 +2,7 @@
   "expo": {
     "name": "Tarif Defteri",
     "slug": "food-recipe-ai-mobile",
-    "version": "1.0.2",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon/icon.png",
     "scheme": "yemektarifi",
@@ -10,7 +10,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.tuncer.food-recipe-ai-mobile",
-      "buildNumber": "6",
+      "buildNumber": "7",
       "icon": {
         "light": "./assets/icon/icon.png",
         "dark": "./assets/icon/icon-dark.png",
