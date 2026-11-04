@@ -113,6 +113,7 @@ function RootStack() {
           <Stack.Screen name="pantry" options={{ contentStyle: { backgroundColor: colors.surface } }} />
           <Stack.Screen name="shopping" options={{ contentStyle: { backgroundColor: colors.surface } }} />
           <Stack.Screen name="journal" options={{ contentStyle: { backgroundColor: colors.surface } }} />
+          <Stack.Screen name="agent" options={{ contentStyle: { backgroundColor: colors.surface } }} />
           <Stack.Screen name="voice-recipe" options={{ presentation: 'modal', gestureEnabled: false, contentStyle: { backgroundColor: colors.surface } }} />
         </Stack.Protected>
         <Stack.Protected guard={status === 'onboarding'}>

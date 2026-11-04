@@ -7,6 +7,7 @@ import { ChefHero } from '@/components/home/chef-hero';
 import { CreatorRail } from '@/components/home/creator-rail';
 import { FeaturedRecipe } from '@/components/home/featured-recipe';
 import { GenerationStatus } from '@/components/home/generation-status';
+import { AskBar } from '@/components/home/ask-bar';
 import { HomeHeader } from '@/components/home/home-header';
 import { KitchenShortcuts } from '@/components/home/kitchen-shortcuts';
 import { ReelHero } from '@/components/home/reel-hero';
@@ -94,6 +95,7 @@ export default function HomeScreen() {
               Bugün ne pişirelim?
             </Text>
             <SearchField onPress={() => router.navigate('/search')} placeholder="Tarif, malzeme ya da hesap ara" tone="prominent" />
+            <AskBar />
             <View style={styles.heroes}>
               <ReelHero />
               <ChefHero />

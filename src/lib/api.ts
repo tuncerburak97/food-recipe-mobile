@@ -143,7 +143,7 @@ function absolute(url: string): string {
   return url.startsWith('/') ? API_BASE_URL + url : url;
 }
 
-function toEntry(e: ApiEntry): RecipeEntry {
+export function toEntry(e: ApiEntry): RecipeEntry {
   const s = e.source;
   return {
     id: String(e.id),
@@ -362,6 +362,10 @@ export function describeError(err: unknown): { title: string; message: string } 
       return { title: 'Bununla tarif çıkmadı', message: err instanceof Error ? err.message : 'Birkaç malzeme daha ekler misin?' };
     case 'CHEF_UNSAFE':
       return { title: 'Güvenli bir tarif bulamadık', message: 'Alerji ve beslenme tercihlerine uymayan bir şey çıktı, göstermedik. Tekrar dener misin?' };
+    case 'AGENT_RATE_LIMITED':
+      return { title: 'Biraz yavaşlayalım', message: 'Kısa sürede çok soru sordun. Birkaç dakika sonra tekrar dene.' };
+    case 'AGENT_NOT_CONFIGURED':
+      return { title: 'Asistan şu an kapalı', message: 'Birazdan tekrar dene.' };
     case 'CREATOR_NOT_FOUND':
       return { title: 'Profil bulunamadı', message: 'Bu hesaptan kayıtlı tarif yok.' };
     case 'RECIPE_NOT_FOUND':
