@@ -1,4 +1,4 @@
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
@@ -33,11 +33,11 @@ export function CapabilityGrid({ onPick }: { onPick: (kind: GuideKind) => void }
   );
 }
 
-/** The same choices as one swipeable row, above the message box during a conversation. */
+/** The same choices as pills that wrap onto lines, all in view (above the keyboard, by the message box). */
 export function CapabilityStrip({ onPick }: { onPick: (kind: GuideKind) => void }) {
   const { colors } = useTheme();
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={styles.strip} style={styles.bleed}>
+    <View style={styles.pills}>
       {CAPABILITIES.map((c) => (
         <Pressable
           key={c.kind}
@@ -51,7 +51,7 @@ export function CapabilityStrip({ onPick }: { onPick: (kind: GuideKind) => void 
           </Text>
         </Pressable>
       ))}
-    </ScrollView>
+    </View>
   );
 }
 
@@ -59,8 +59,7 @@ const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   tile: { flexBasis: '47%', flexGrow: 1, gap: 4, padding: 12, borderRadius: Radius.md, minHeight: 96 },
   well: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
-  strip: { gap: 8, paddingHorizontal: 20 },
-  bleed: { marginHorizontal: -20 },
+  pills: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   pill: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 36, paddingHorizontal: 12, borderRadius: 18 },
   pressed: { opacity: 0.7 },
 });
