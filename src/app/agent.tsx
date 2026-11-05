@@ -1,4 +1,4 @@
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View, type NativeScrollEvent, type NativeSyntheticEvent, type ScrollViewInstance } from 'react-native';
 import Animated, { FadeIn, FadeInUp, LayoutAnimationConfig } from 'react-native-reanimated';
@@ -181,10 +181,16 @@ export default function AgentScreen() {
     (q: string) => {
       atEnd.current = true;
       setInput('');
+      // Answers are cards: the keyboard would hide half of them.
+      Keyboard.dismiss();
       send(q);
     },
     [send],
   );
+
+  // Leaving the chat (a card, an opened screen) drops the keyboard, so iOS does not raise it again
+  // when the user comes back.
+  useFocusEffect(useCallback(() => () => Keyboard.dismiss(), []));
 
   /** A capability tile: the pantry asks at once when it has something, the rest open a question card. */
   const pick = useCallback(
