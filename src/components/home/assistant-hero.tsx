@@ -10,7 +10,7 @@ import { Text } from '@/components/ui/text';
 import { Radius } from '@/constants/theme';
 import { useAgentTurns } from '@/hooks/use-agent-chat';
 import { HOME_CAPABILITIES } from '@/lib/agent/capabilities';
-import { ASK_EXAMPLES } from '@/lib/agent/starters';
+import { useAssistantExamples } from '@/hooks/use-assistant-examples';
 
 // The same warm colors in both themes, like the other Home strips: espresso into the app's orange.
 const GRADIENT = ['#2A1B16', '#5A2C1E', '#B4471F'] as const;
@@ -30,12 +30,14 @@ const EXAMPLE_MS = 3200;
  * title go back to the last one.
  */
 export function AssistantHero() {
-  const [example, setExample] = useState(0);
+  const [tick, setTick] = useState(0);
   const talking = useAgentTurns().length > 0;
+  // The box turns through one example per capability, with the app's data ("@hesap tariflerini getir").
+  const examples = useAssistantExamples();
+  const example = examples[tick % examples.length].text;
 
-  // The box turns through examples of what can be asked.
   useEffect(() => {
-    const t = setInterval(() => setExample((i) => (i + 1) % ASK_EXAMPLES.length), EXAMPLE_MS);
+    const t = setInterval(() => setTick((i) => i + 1), EXAMPLE_MS);
     return () => clearInterval(t);
   }, []);
 
@@ -78,7 +80,7 @@ export function AssistantHero() {
           <Icon name="sparkles" size={18} color={ACCENT} />
           <Animated.View key={example} entering={FadeIn.duration(220)} exiting={FadeOut.duration(160)} style={styles.flex}>
             <Text variant="body" tint={BOX_HINT} numberOfLines={1}>
-              {ASK_EXAMPLES[example]}
+              {example}…
             </Text>
           </Animated.View>
         </Pressable>

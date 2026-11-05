@@ -21,10 +21,10 @@ import { ScreenHeader } from '@/components/ui/screen-header';
 import { Text } from '@/components/ui/text';
 import { Radius, ScreenPadding } from '@/constants/theme';
 import { openScreen, useAgentChat } from '@/hooks/use-agent-chat';
+import { useAssistantExamples } from '@/hooks/use-assistant-examples';
 import { useDictation, useDictationRecorder, type DictationRecorder } from '@/hooks/use-dictation';
 import { useTheme } from '@/hooks/use-theme';
-import { MORE_EXAMPLES, type GuideKind } from '@/lib/agent/capabilities';
-import { assistantStarters } from '@/lib/agent/starters';
+import { type GuideKind } from '@/lib/agent/capabilities';
 import type { AgentAction, AssistantTurn, UserTurn } from '@/lib/agent/types';
 import { pantryItems, usePantry } from '@/lib/kitchen';
 
@@ -97,8 +97,8 @@ function AssistantMessage({ turn, latest, onRetry, onAsk }: { turn: AssistantTur
 }
 
 function Intro({ onPick, onAsk, disabled, compact }: { onPick: (kind: GuideKind) => void; onAsk: (q: string) => void; disabled: boolean; compact: boolean }) {
-  const pantryCount = pantryItems(usePantry().data).length;
-  const examples = [...assistantStarters({ pantryCount }).slice(0, 2), ...MORE_EXAMPLES.slice(0, 3)];
+  // One question per capability, with real data (a real account, the most used ingredient...).
+  const examples = useAssistantExamples();
   // While typing the keyboard takes half the screen: one row of shortcuts and a few examples fit
   // above it, the grid of tiles would be cut in half.
   if (compact) {
@@ -112,8 +112,8 @@ function Intro({ onPick, onAsk, disabled, compact }: { onPick: (kind: GuideKind)
           YA DA ŞÖYLE SOR
         </Text>
         <View style={styles.starters}>
-          {examples.slice(0, 4).map((q) => (
-            <Chip key={q} label={q} kind="button" tone="sunken" size="sm" onPress={() => onAsk(q)} disabled={disabled} />
+          {examples.slice(0, 6).map((e) => (
+            <Chip key={e.text} label={e.text} icon={e.icon} kind="button" tone="sunken" size="sm" onPress={() => onAsk(e.text)} disabled={disabled} />
           ))}
         </View>
       </View>
@@ -135,8 +135,8 @@ function Intro({ onPick, onAsk, disabled, compact }: { onPick: (kind: GuideKind)
         ŞÖYLE DE SORABİLİRSİN
       </Text>
       <View style={styles.starters}>
-        {examples.map((q) => (
-          <Chip key={q} label={q} kind="button" tone="sunken" size="sm" onPress={() => onAsk(q)} disabled={disabled} />
+        {examples.map((e) => (
+          <Chip key={e.text} label={e.text} icon={e.icon} kind="button" tone="sunken" size="sm" onPress={() => onAsk(e.text)} disabled={disabled} />
         ))}
       </View>
     </View>
