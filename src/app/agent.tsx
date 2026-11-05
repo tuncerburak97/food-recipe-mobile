@@ -6,6 +6,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AgentComposer } from '@/components/agent/agent-composer';
 import { AnswerText } from '@/components/agent/answer-text';
+import { CapabilityGrid, CapabilityStrip } from '@/components/agent/capability-tiles';
+import { GuideCard } from '@/components/agent/guide-card';
 import { ResultBlock } from '@/components/agent/result-blocks';
 import { WorkLog } from '@/components/agent/work-log';
 import { useKeyboardVisible } from '@/components/assistant/use-keyboard-visible';
@@ -21,6 +23,7 @@ import { Radius, ScreenPadding } from '@/constants/theme';
 import { openScreen, useAgentChat } from '@/hooks/use-agent-chat';
 import { useDictation, useDictationRecorder, type DictationRecorder } from '@/hooks/use-dictation';
 import { useTheme } from '@/hooks/use-theme';
+import { MORE_EXAMPLES, type GuideKind } from '@/lib/agent/capabilities';
 import { assistantStarters } from '@/lib/agent/starters';
 import type { AgentAction, AssistantTurn, UserTurn } from '@/lib/agent/types';
 import { pantryItems, usePantry } from '@/lib/kitchen';
@@ -93,23 +96,27 @@ function AssistantMessage({ turn, latest, onRetry, onAsk }: { turn: AssistantTur
   );
 }
 
-function Intro({ onPick, disabled }: { onPick: (q: string) => void; disabled: boolean }) {
-  const { colors } = useTheme();
+function Intro({ onPick, onAsk, disabled }: { onPick: (kind: GuideKind) => void; onAsk: (q: string) => void; disabled: boolean }) {
   const pantryCount = pantryItems(usePantry().data).length;
+  const examples = [...assistantStarters({ pantryCount }).slice(0, 2), ...MORE_EXAMPLES.slice(0, 3)];
   return (
     <View style={styles.intro}>
-      <View style={[styles.introCard, { backgroundColor: colors.accentSoft }]}>
-        <ChefAvatar size={68} ring />
-        <Text variant="title2" align="center">
-          Ne pişirelim?
-        </Text>
-        <Text variant="subhead" color="textSecondary" align="center">
-          Tarif bul, dolabını ve alışveriş listeni düzenle, menü hazırla, tarifleri uyarla. Yaz ya da söyle.
-        </Text>
+      <View style={styles.introHead}>
+        <ChefAvatar size={48} ring />
+        <View style={styles.flex}>
+          <Text variant="title2">Ne pişirelim?</Text>
+          <Text variant="subhead" color="textSecondary">
+            Bir iş seç ya da aşağıya yaz, söyle.
+          </Text>
+        </View>
       </View>
+      <CapabilityGrid onPick={onPick} />
+      <Text variant="overline" color="textTertiary">
+        ŞÖYLE DE SORABİLİRSİN
+      </Text>
       <View style={styles.starters}>
-        {assistantStarters({ pantryCount }).map((q) => (
-          <Chip key={q} label={q} kind="button" tone="sunken" onPress={() => onPick(q)} disabled={disabled} />
+        {examples.map((q) => (
+          <Chip key={q} label={q} kind="button" tone="sunken" size="sm" onPress={() => onAsk(q)} disabled={disabled} />
         ))}
       </View>
     </View>
@@ -128,11 +135,13 @@ function RecorderBridge({ attach }: { attach: (r: DictationRecorder | null) => v
  * menus, and opens screens. Params: q (ask at once), voice=1 (start listening), focus=1 (keyboard).
  */
 export default function AgentScreen() {
-  const params = useLocalSearchParams<{ voice?: string; q?: string; focus?: string }>();
+  const params = useLocalSearchParams<{ voice?: string; q?: string; focus?: string; guide?: string }>();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const keyboardUp = useKeyboardVisible();
-  const { turns, busy, send, retry, stop, clear } = useAgentChat();
+  const { turns, busy, send, retry, stop, clear, guide, dismissGuide } = useAgentChat();
+  const pantryCount = pantryItems(usePantry().data).length;
+  const [tools, setTools] = useState(false);
   const [input, setInput] = useState('');
   const [partial, setPartial] = useState('');
   const scroll = useRef<ScrollViewInstance>(null);
@@ -157,15 +166,27 @@ export default function AgentScreen() {
     [send],
   );
 
-  // Opened from Home's mic or with a question.
+  /** A capability tile: the pantry asks at once when it has something, the rest open a question card. */
+  const pick = useCallback(
+    (kind: GuideKind) => {
+      atEnd.current = true;
+      setTools(false);
+      if (kind === 'pantry' && pantryCount > 0) ask('Dolabımla ne pişirebilirim?');
+      else guide(kind);
+    },
+    [ask, guide, pantryCount],
+  );
+
+  // Opened from Home: with a question, a tile or the mic.
   const started = useRef(false);
   useEffect(() => {
     if (started.current) return;
     started.current = true;
-    const q = params.q;
+    const { q, guide: kind } = params;
     if (q) setTimeout(() => ask(q), 0);
+    else if (kind) setTimeout(() => pick(kind as GuideKind), 0);
     else if (params.voice === '1' && dictation.mode !== 'none') setTimeout(dictation.start, 350);
-  }, [params.q, params.voice, ask, dictation]);
+  }, [params, ask, pick, dictation]);
 
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
@@ -203,12 +224,14 @@ export default function AgentScreen() {
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
         showsVerticalScrollIndicator={false}>
-        {turns.length === 0 ? <Intro onPick={ask} disabled={busy} /> : null}
+        {turns.length === 0 ? <Intro onPick={pick} onAsk={ask} disabled={busy} /> : null}
         {/* Messages already there when the screen opens appear at once; new ones fade in. */}
         <LayoutAnimationConfig skipEntering>
           {turns.map((t, i) =>
             t.role === 'user' ? (
               <UserMessage key={t.id} turn={t} />
+            ) : t.role === 'guide' ? (
+              <GuideCard key={t.id} kind={t.kind} onAsk={ask} onClose={dismissGuide} />
             ) : (
               <AssistantMessage key={t.id} turn={t} latest={i === turns.length - 1} onRetry={retry} onAsk={ask} />
             ),
@@ -217,15 +240,29 @@ export default function AgentScreen() {
       </ScrollView>
 
       <StickyFooter style={[styles.footer, { paddingBottom: (keyboardUp ? 0 : insets.bottom) + 10 }]}>
-        <AgentComposer
-          value={input}
-          onChangeText={setInput}
-          onSend={() => ask(input)}
-          busy={busy}
-          onStop={stop}
-          voice={{ ...dictation, start: startVoice, partial }}
-          autoFocus={params.focus === '1' && !params.q}
-        />
+        {tools && turns.length > 0 ? <CapabilityStrip onPick={pick} /> : null}
+        <View style={styles.composerRow}>
+          {turns.length > 0 && dictation.phase === 'idle' ? (
+            <IconButton
+              icon={tools ? 'close' : 'apps-outline'}
+              label={tools ? 'Kısayolları kapat' : 'Neler yapabilirim'}
+              tone="muted"
+              size={44}
+              onPress={() => setTools((v) => !v)}
+            />
+          ) : null}
+          <View style={styles.flex}>
+            <AgentComposer
+              value={input}
+              onChangeText={setInput}
+              onSend={() => ask(input)}
+              busy={busy}
+              onStop={stop}
+              voice={{ ...dictation, start: startVoice, partial }}
+              autoFocus={params.focus === '1' && !params.q && !params.guide}
+            />
+          </View>
+        </View>
       </StickyFooter>
     </KeyboardAvoidingView>
   );
@@ -236,8 +273,9 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   header: { borderBottomWidth: StyleSheet.hairlineWidth },
   body: { paddingHorizontal: ScreenPadding, paddingTop: 16, paddingBottom: 24, gap: 18 },
-  intro: { gap: 16 },
-  introCard: { alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingTop: 22, paddingBottom: 20, borderRadius: Radius.xl },
+  intro: { gap: 14 },
+  introHead: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 2 },
+  composerRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
   starters: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   userRow: { flexDirection: 'row', justifyContent: 'flex-end', paddingLeft: 56 },
   userBubble: { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: Radius.lg, borderBottomRightRadius: 6, paddingHorizontal: 14, paddingVertical: 10, flexShrink: 1 },
@@ -250,5 +288,5 @@ const styles = StyleSheet.create({
   suggestions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   error: { borderRadius: Radius.md, padding: 12, gap: 10 },
   retry: { alignSelf: 'flex-start' },
-  footer: { paddingTop: 10 },
+  footer: { paddingTop: 10, gap: 10 },
 });

@@ -271,6 +271,11 @@ export const api = {
     return request<Creator>(`/api/v1/creators/${encodeURIComponent(username)}`, { method: 'GET' }, 20_000);
   },
 
+  /** The ingredients most recipes use (staples like salt left out), most used first. */
+  async popularIngredients(limit = 24) {
+    return (await request<{ items: { name: string; count: number }[] }>(`/api/v1/ingredients?limit=${limit}`, { method: 'GET' }, 20_000)).items;
+  },
+
   /** Recipe count per category, largest first (empty categories are left out). */
   categories() {
     return request<{ items: CategoryCount[]; total: number }>('/api/v1/categories', { method: 'GET' }, 20_000);

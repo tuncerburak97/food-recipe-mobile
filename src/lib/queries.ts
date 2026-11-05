@@ -62,6 +62,11 @@ export function useCreator(username: string) {
   });
 }
 
+/** The most used ingredients, for picking "içinde ne olsun?" in the assistant. */
+export function usePopularIngredients(limit = 24) {
+  return useQuery({ queryKey: ['ingredients', limit], queryFn: () => api.popularIngredients(limit), staleTime: 10 * 60_000 });
+}
+
 export function useCategories() {
   return useQuery({ queryKey: ['categories'], queryFn: api.categories });
 }

@@ -6,6 +6,7 @@ import { useCallback, useSyncExternalStore } from 'react';
 import { ApiError, describeError } from '@/lib/api';
 import { streamAgent } from '@/lib/agent/stream';
 import { startAdapt } from '@/lib/agent/tasks';
+import type { GuideKind } from '@/lib/agent/capabilities';
 import type { AgentAction, AgentBlock, AgentEvent, AgentHistoryTurn, AgentTurn, AssistantTurn } from '@/lib/agent/types';
 import type { GenerationJob } from '@/lib/types';
 
@@ -58,7 +59,7 @@ function history(list: AgentTurn[]): AgentHistoryTurn[] {
       out.push({ role: 'user', content: t.text });
       continue;
     }
-    if (t.error || t.streaming) continue;
+    if (t.role === 'guide' || t.error || t.streaming) continue;
     const refs = t.blocks.flatMap(refsOf).slice(0, 8);
     out.push({ role: 'assistant', content: t.text, refs: refs.length ? refs : undefined });
   }
@@ -240,13 +241,15 @@ export function useAgentChat() {
       const content = text.trim();
       if (!content) return;
       Haptics.selectionAsync();
+      // A question card still open is answered by this message.
+      const base = turns.filter((t) => t.role !== 'guide');
       const user: AgentTurn = { id: newId(), role: 'user', text: content, voice: opts?.voice };
       const link = REEL_URL.exec(content)?.[0];
       if (link) {
         const turnSeq = ++runSeq;
         const go: AgentAction = { type: 'open', screen: 'add', id: link };
         set([
-          ...turns,
+          ...base,
           user,
           { id: newId(), role: 'assistant', steps: [], blocks: [], streaming: false, text: 'Bu videonun tarifini çıkarıyorum, ekleme ekranını açıyorum.', action: go },
         ]);
@@ -255,10 +258,18 @@ export function useAgentChat() {
         }, 500);
         return;
       }
-      run([...turns, user]);
+      run([...base, user]);
     },
     [run],
   );
+
+  /** Shows a question card (one at a time) at the end of the conversation. */
+  const guide = useCallback((kind: GuideKind) => {
+    controller?.abort();
+    set([...turns.filter((t) => t.role !== 'guide'), { id: newId(), role: 'guide', kind }]);
+  }, []);
+
+  const dismissGuide = useCallback(() => set(turns.filter((t) => t.role !== 'guide')), []);
 
   const retry = useCallback(() => {
     const i = turns.length - 1;
@@ -274,7 +285,7 @@ export function useAgentChat() {
     set([]);
   }, []);
 
-  return { turns: list, busy, send, retry, stop, clear };
+  return { turns: list, busy, send, retry, stop, clear, guide, dismissGuide };
 }
 
 /** The conversation without the actions, for places that only show it (Home's "continue" row). */

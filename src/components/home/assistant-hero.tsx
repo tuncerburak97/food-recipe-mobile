@@ -1,7 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
 import { ChefAvatar } from '@/components/ui/chef-avatar';
@@ -9,8 +9,8 @@ import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { Fonts, Radius } from '@/constants/theme';
 import { useAgentTurns } from '@/hooks/use-agent-chat';
-import { ASK_EXAMPLES, assistantStarters } from '@/lib/agent/starters';
-import { pantryItems, usePantry } from '@/lib/kitchen';
+import { CAPABILITIES } from '@/lib/agent/capabilities';
+import { ASK_EXAMPLES } from '@/lib/agent/starters';
 
 // The same warm colors in both themes, like the other Home strips: espresso into the app's orange.
 const GRADIENT = ['#2A1B16', '#5A2C1E', '#B4471F'] as const;
@@ -26,15 +26,13 @@ const EXAMPLE_MS = 3200;
 
 /**
  * Home's main card: the AI chef assistant. Type or say anything the app can do ("içinde bulgur
- * olanlar", "dolabıma yumurta ekle", "bu haftaya menü"); a send, a quick question or the mic opens
- * the chat with it. When a conversation is going, "Sohbete dön" goes back to it.
+ * olanlar", "dolabıma yumurta ekle"), or tap a tile: it opens the chat with a short question card
+ * for that job (which ingredients, which account...). "Sohbete dön" goes back to a conversation.
  */
 export function AssistantHero() {
   const [text, setText] = useState('');
   const [focused, setFocused] = useState(false);
   const [example, setExample] = useState(0);
-  const pantryCount = pantryItems(usePantry().data).length;
-  const starters = assistantStarters({ pantryCount }).slice(0, 4);
   const talking = useAgentTurns().length > 0;
 
   // The placeholder turns through examples while the box is empty and idle.
@@ -57,13 +55,13 @@ export function AssistantHero() {
       <View style={styles.glow} pointerEvents="none" />
 
       <View style={styles.top}>
-        <ChefAvatar size={44} ring />
+        <ChefAvatar size={40} ring />
         <Pressable onPress={() => router.push({ pathname: '/agent', params: { focus: '1' } })} accessibilityRole="button" accessibilityLabel="AI Şef sohbetini aç" style={styles.titles}>
           <Text variant="overline" tint={SOFT}>
-            AI ŞEF ASİSTANI
+            AI ŞEF
           </Text>
-          <Text variant="title2" tint={INK}>
-            Sor, ben halledeyim
+          <Text variant="title2" tint={INK} numberOfLines={1}>
+            Ne pişirelim?
           </Text>
         </Pressable>
         {talking ? (
@@ -80,9 +78,6 @@ export function AssistantHero() {
           </Pressable>
         ) : null}
       </View>
-      <Text variant="footnote" tint={SOFT} style={styles.desc}>
-        Tarif bulur, dolabını ve alışveriş listeni düzenler, menü hazırlar, tarifleri uyarlar.
-      </Text>
 
       <View style={styles.box}>
         <Icon name="sparkles" size={18} color={ACCENT} />
@@ -111,15 +106,21 @@ export function AssistantHero() {
         </Pressable>
       </View>
 
-      <View style={styles.quick}>
-        {starters.map((q) => (
-          <Pressable key={q} onPress={() => ask(q)} accessibilityRole="button" style={({ pressed }) => [styles.chip, pressed && styles.pressed]}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tiles} style={styles.bleed}>
+        {CAPABILITIES.map((c) => (
+          <Pressable
+            key={c.kind}
+            onPress={() => router.push({ pathname: '/agent', params: { guide: c.kind } })}
+            accessibilityRole="button"
+            accessibilityLabel={`${c.title}. ${c.hint}`}
+            style={({ pressed }) => [styles.tile, pressed && styles.pressed]}>
+            <Icon name={c.icon} size={20} color={INK} />
             <Text variant="caption" tint={INK} numberOfLines={1}>
-              {q}
+              {c.title}
             </Text>
           </Pressable>
         ))}
-      </View>
+      </ScrollView>
     </Animated.View>
   );
 }
@@ -137,7 +138,6 @@ const styles = StyleSheet.create({
   top: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   titles: { flex: 1, gap: 2 },
   back: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, height: 30, borderRadius: 15, backgroundColor: GLASS, borderWidth: StyleSheet.hairlineWidth, borderColor: GLASS_EDGE },
-  desc: { marginTop: -4 },
   box: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -150,7 +150,9 @@ const styles = StyleSheet.create({
   },
   input: { flex: 1, fontFamily: Fonts.regular, fontSize: 15, color: BOX_TEXT, paddingVertical: 12, outlineWidth: 0 },
   go: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: ACCENT },
-  quick: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { height: 32, justifyContent: 'center', paddingHorizontal: 12, borderRadius: 16, backgroundColor: GLASS, borderWidth: StyleSheet.hairlineWidth, borderColor: GLASS_EDGE, maxWidth: '100%' },
+  // Tiles run to the card's edges and scroll; the next one peeks in.
+  bleed: { marginHorizontal: -16 },
+  tiles: { gap: 8, paddingHorizontal: 16 },
+  tile: { width: 78, height: 70, alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: Radius.md, backgroundColor: GLASS, borderWidth: StyleSheet.hairlineWidth, borderColor: GLASS_EDGE },
   pressed: { opacity: 0.75 },
 });
