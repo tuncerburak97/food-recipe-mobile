@@ -103,25 +103,37 @@ function RecipeRow({ item, last, label }: { item: AgentRecipeItem; last: boolean
   );
 }
 
-function RecipeBlock({ title, items }: { title?: string; items: AgentRecipeItem[] }) {
+function RecipeBlock({ title, items, total, more }: { title?: string; items: AgentRecipeItem[]; total?: number; more?: AgentLink }) {
   const { colors } = useTheme();
   const [all, setAll] = useState(false);
   const shown = all ? items : items.slice(0, FIRST);
   const close = items.some((i) => i.partial);
+  const count = Math.max(total ?? 0, items.length);
+  // More matched than the chat holds: say so, and offer the screen with all of them.
+  const beyond = all && count > items.length;
+  const footer = items.length > FIRST || beyond;
 
   return (
     <Card>
-      <CardHead title={title} meta={`${items.length} tarif${close ? ' · yakın eşleşmeler var' : ''}`} />
+      <CardHead title={title} meta={`${count} tarif${close ? ' · yakın eşleşmeler var' : ''}`} />
       {shown.map((it, i) => (
-        <RecipeRow key={it.entry.id} item={it} last={i === shown.length - 1 && items.length <= FIRST} />
+        <RecipeRow key={it.entry.id} item={it} last={i === shown.length - 1 && !footer} />
       ))}
+      {beyond ? (
+        <View style={[styles.beyond, { borderTopColor: colors.border }]}>
+          <Text variant="footnote" color="textSecondary">
+            En iyi {items.length} tarif burada; daraltmak için aşağıdan sor.
+          </Text>
+          {more ? <Chip label={more.label} icon="open-outline" kind="button" tone="sunken" size="sm" onPress={() => openScreen(more)} /> : null}
+        </View>
+      ) : null}
       {items.length > FIRST ? (
         <Pressable
           onPress={() => setAll((v) => !v)}
           accessibilityRole="button"
           style={({ pressed }) => [styles.more, { borderTopColor: colors.border }, pressed && { backgroundColor: colors.surfaceMuted }]}>
           <Text variant="subhead" color="accentText">
-            {all ? 'Daha az göster' : `Tümünü gör (${items.length})`}
+            {all ? 'Daha az göster' : `Tümünü gör (${count > items.length ? `${items.length}/${count}` : items.length})`}
           </Text>
         </Pressable>
       ) : null}
@@ -289,7 +301,7 @@ function CreatorBlock({ items }: { items: Creator[] }) {
 export function ResultBlock({ block }: { block: AgentBlock }) {
   switch (block.type) {
     case 'recipes':
-      return <RecipeBlock title={block.title} items={block.recipes} />;
+      return <RecipeBlock title={block.title} items={block.recipes} total={block.total} more={block.more} />;
     case 'plan':
       return <PlanBlock title={block.title} plan={block.plan} />;
     case 'creators':
@@ -311,6 +323,7 @@ const styles = StyleSheet.create({
   photo: { width: 52, height: 52, borderRadius: Radius.sm + 2, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   body: { flex: 1, gap: 2 },
   more: { alignItems: 'center', justifyContent: 'center', minHeight: 46, borderTopWidth: StyleSheet.hairlineWidth },
+  beyond: { gap: 8, padding: 14, borderTopWidth: StyleSheet.hairlineWidth, alignItems: 'flex-start' },
   status: { flexDirection: 'row', gap: 12, padding: 14 },
   well: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   statusBody: { flex: 1, gap: 4, paddingTop: 7 },

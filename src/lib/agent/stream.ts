@@ -47,6 +47,8 @@ type RawBlock = {
   type: string;
   title?: string;
   recipes?: RawItem[];
+  total?: number;
+  more?: AgentLink;
   creators?: Creator[];
   plan?: { label: string; recipe: RawItem }[];
   notice?: { lines?: string[]; links?: AgentLink[]; changed?: AgentChanged[] };
@@ -59,7 +61,7 @@ const toItem = (r: RawItem) => ({ entry: toEntry(r.entry), missing: r.missing, p
 function toBlock(b: RawBlock): AgentBlock | null {
   switch (b.type) {
     case 'recipes':
-      return { id: b.id, type: 'recipes', title: b.title, recipes: (b.recipes ?? []).map(toItem) };
+      return { id: b.id, type: 'recipes', title: b.title, recipes: (b.recipes ?? []).map(toItem), total: b.total, more: b.more };
     case 'creators':
       return { id: b.id, type: 'creators', title: b.title, creators: b.creators ?? [] };
     case 'plan':
