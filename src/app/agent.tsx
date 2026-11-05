@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View, type NativeScrollEvent, type NativeSyntheticEvent, type ScrollViewInstance } from 'react-native';
+import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View, type NativeScrollEvent, type NativeSyntheticEvent, type ScrollViewInstance } from 'react-native';
 import Animated, { FadeIn, FadeInUp, LayoutAnimationConfig } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -96,9 +96,29 @@ function AssistantMessage({ turn, latest, onRetry, onAsk }: { turn: AssistantTur
   );
 }
 
-function Intro({ onPick, onAsk, disabled }: { onPick: (kind: GuideKind) => void; onAsk: (q: string) => void; disabled: boolean }) {
+function Intro({ onPick, onAsk, disabled, compact }: { onPick: (kind: GuideKind) => void; onAsk: (q: string) => void; disabled: boolean; compact: boolean }) {
   const pantryCount = pantryItems(usePantry().data).length;
   const examples = [...assistantStarters({ pantryCount }).slice(0, 2), ...MORE_EXAMPLES.slice(0, 3)];
+  // While typing the keyboard takes half the screen: one row of shortcuts and a few examples fit
+  // above it, the grid of tiles would be cut in half.
+  if (compact) {
+    return (
+      <View style={styles.intro}>
+        <Text variant="overline" color="textTertiary">
+          BİR İŞ SEÇ
+        </Text>
+        <CapabilityStrip onPick={onPick} />
+        <Text variant="overline" color="textTertiary">
+          YA DA ŞÖYLE SOR
+        </Text>
+        <View style={styles.starters}>
+          {examples.slice(0, 4).map((q) => (
+            <Chip key={q} label={q} kind="button" tone="sunken" size="sm" onPress={() => onAsk(q)} disabled={disabled} />
+          ))}
+        </View>
+      </View>
+    );
+  }
   return (
     <View style={styles.intro}>
       <View style={styles.introHead}>
@@ -171,6 +191,7 @@ export default function AgentScreen() {
     (kind: GuideKind) => {
       atEnd.current = true;
       setTools(false);
+      Keyboard.dismiss(); // the question card needs the room
       if (kind === 'pantry' && pantryCount > 0) ask('Dolabımla ne pişirebilirim?');
       else guide(kind);
     },
@@ -226,7 +247,7 @@ export default function AgentScreen() {
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
         showsVerticalScrollIndicator={false}>
-        {turns.length === 0 ? <Intro onPick={pick} onAsk={ask} disabled={busy} /> : null}
+        {turns.length === 0 ? <Intro onPick={pick} onAsk={ask} disabled={busy} compact={keyboardUp} /> : null}
         {/* Messages already there when the screen opens appear at once; new ones fade in. */}
         <LayoutAnimationConfig skipEntering>
           {turns.map((t, i) =>
