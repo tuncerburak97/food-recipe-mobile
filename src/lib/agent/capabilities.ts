@@ -23,6 +23,9 @@ export const CAPABILITIES: Capability[] = [
   { kind: 'write', icon: 'sparkles-outline', title: 'Tarif yazdır', hint: 'AI Şef sana yazsın' },
 ];
 
+/** The four Home shows (the chat has them all): the jobs people start with most. */
+export const HOME_CAPABILITIES = CAPABILITIES.filter((c) => ['ingredient', 'creator', 'pantry', 'menu'].includes(c.kind));
+
 /** Things to ask that need no guide: the kitchen, a recipe, the profile, screens. */
 export const MORE_EXAMPLES = [
   'Sütsüz tatlılar',

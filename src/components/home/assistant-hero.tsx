@@ -1,15 +1,15 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
-import Animated, { FadeIn } from 'react-native-reanimated';
+import { Pressable, StyleSheet, View } from 'react-native';
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 
 import { ChefAvatar } from '@/components/ui/chef-avatar';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
-import { Fonts, Radius } from '@/constants/theme';
+import { Radius } from '@/constants/theme';
 import { useAgentTurns } from '@/hooks/use-agent-chat';
-import { CAPABILITIES } from '@/lib/agent/capabilities';
+import { HOME_CAPABILITIES } from '@/lib/agent/capabilities';
 import { ASK_EXAMPLES } from '@/lib/agent/starters';
 
 // The same warm colors in both themes, like the other Home strips: espresso into the app's orange.
@@ -18,36 +18,26 @@ const INK = '#FFFFFF';
 const SOFT = 'rgba(255,244,236,0.82)';
 const GLASS = 'rgba(255,255,255,0.12)';
 const GLASS_EDGE = 'rgba(255,244,236,0.28)';
-const BOX_TEXT = '#1D1B18';
 const BOX_HINT = '#8F8781';
 const ACCENT = '#D65C30';
 /** How long each example stays in the ask box. */
 const EXAMPLE_MS = 3200;
 
 /**
- * Home's main card: the AI chef assistant. Type or say anything the app can do ("içinde bulgur
- * olanlar", "dolabıma yumurta ekle"), or tap a tile: it opens the chat with a short question card
- * for that job (which ingredients, which account...). "Sohbete dön" goes back to a conversation.
+ * Home's main card: the AI chef assistant. The ask box opens the chat with the keyboard up (typing
+ * happens there, so the keyboard opens once); the mic opens it listening; a tile opens it with a
+ * short question card for that job. Each of these starts a new conversation; "Sohbete dön" and the
+ * title go back to the last one.
  */
 export function AssistantHero() {
-  const [text, setText] = useState('');
-  const [focused, setFocused] = useState(false);
   const [example, setExample] = useState(0);
   const talking = useAgentTurns().length > 0;
 
-  // The placeholder turns through examples while the box is empty and idle.
+  // The box turns through examples of what can be asked.
   useEffect(() => {
-    if (focused || text) return;
     const t = setInterval(() => setExample((i) => (i + 1) % ASK_EXAMPLES.length), EXAMPLE_MS);
     return () => clearInterval(t);
-  }, [focused, text]);
-
-  const ask = (q: string) => {
-    const content = q.trim();
-    if (!content) return;
-    setText('');
-    router.push({ pathname: '/agent', params: { q: content } });
-  };
+  }, []);
 
   return (
     <Animated.View entering={FadeIn.duration(280)} style={styles.card}>
@@ -56,7 +46,7 @@ export function AssistantHero() {
 
       <View style={styles.top}>
         <ChefAvatar size={40} ring />
-        <Pressable onPress={() => router.push({ pathname: '/agent', params: { focus: '1' } })} accessibilityRole="button" accessibilityLabel="AI Şef sohbetini aç" style={styles.titles}>
+        <Pressable onPress={() => router.push('/agent')} accessibilityRole="button" accessibilityLabel="AI Şef sohbetini aç" style={styles.titles}>
           <Text variant="overline" tint={SOFT}>
             AI ŞEF
           </Text>
@@ -80,34 +70,30 @@ export function AssistantHero() {
       </View>
 
       <View style={styles.box}>
-        <Icon name="sparkles" size={18} color={ACCENT} />
-        <TextInput
-          value={text}
-          onChangeText={setText}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          onSubmitEditing={() => ask(text)}
-          returnKeyType="send"
-          submitBehavior="blurAndSubmit"
-          placeholder={ASK_EXAMPLES[example]}
-          placeholderTextColor={BOX_HINT}
-          selectionColor={ACCENT}
-          maxLength={800}
-          style={styles.input}
-          accessibilityLabel="AI Şef’e sor"
-        />
         <Pressable
-          onPress={() => (text.trim() ? ask(text) : router.push({ pathname: '/agent', params: { voice: '1' } }))}
+          onPress={() => router.push({ pathname: '/agent', params: { focus: '1' } })}
+          accessibilityRole="search"
+          accessibilityLabel="AI Şef’e yaz"
+          style={({ pressed }) => [styles.ask, pressed && styles.pressed]}>
+          <Icon name="sparkles" size={18} color={ACCENT} />
+          <Animated.View key={example} entering={FadeIn.duration(220)} exiting={FadeOut.duration(160)} style={styles.flex}>
+            <Text variant="body" tint={BOX_HINT} numberOfLines={1}>
+              {ASK_EXAMPLES[example]}
+            </Text>
+          </Animated.View>
+        </Pressable>
+        <Pressable
+          onPress={() => router.push({ pathname: '/agent', params: { voice: '1' } })}
           accessibilityRole="button"
-          accessibilityLabel={text.trim() ? 'Gönder' : 'Sesle sor'}
+          accessibilityLabel="Sesle sor"
           hitSlop={6}
           style={({ pressed }) => [styles.go, pressed && styles.pressed]}>
-          <Icon name={text.trim() ? 'arrow-up' : 'mic'} size={20} color={INK} />
+          <Icon name="mic" size={20} color={INK} />
         </Pressable>
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tiles} style={styles.bleed}>
-        {CAPABILITIES.map((c) => (
+      <View style={styles.tiles}>
+        {HOME_CAPABILITIES.map((c) => (
           <Pressable
             key={c.kind}
             onPress={() => router.push({ pathname: '/agent', params: { guide: c.kind } })}
@@ -120,7 +106,7 @@ export function AssistantHero() {
             </Text>
           </Pressable>
         ))}
-      </ScrollView>
+      </View>
     </Animated.View>
   );
 }
@@ -141,18 +127,28 @@ const styles = StyleSheet.create({
   box: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 6,
     minHeight: 52,
-    paddingLeft: 16,
     paddingRight: 6,
     borderRadius: 26,
     backgroundColor: '#FFFFFF',
   },
-  input: { flex: 1, fontFamily: Fonts.regular, fontSize: 15, color: BOX_TEXT, paddingVertical: 12, outlineWidth: 0 },
+  ask: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 52, paddingLeft: 16, borderRadius: 26 },
+  flex: { flex: 1 },
   go: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: ACCENT },
-  // Tiles run to the card's edges and scroll; the next one peeks in.
-  bleed: { marginHorizontal: -16 },
-  tiles: { gap: 8, paddingHorizontal: 16 },
-  tile: { width: 78, height: 70, alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: Radius.md, backgroundColor: GLASS, borderWidth: StyleSheet.hairlineWidth, borderColor: GLASS_EDGE },
+  // Four tiles share the width: all of them visible, nothing to scroll.
+  tiles: { flexDirection: 'row', gap: 8 },
+  tile: {
+    flex: 1,
+    height: 70,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 4,
+    borderRadius: Radius.md,
+    backgroundColor: GLASS,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: GLASS_EDGE,
+  },
   pressed: { opacity: 0.75 },
 });

@@ -177,14 +177,14 @@ export default function AgentScreen() {
     [ask, guide, pantryCount],
   );
 
-  // Opened from Home or Search with a question, a tile or the mic: that starts a new conversation.
-  // Without them ("Sohbete dön") the last one goes on.
+  // Opened from Home or Search with a question, a tile, the ask box or the mic: that starts a new
+  // conversation. Without them ("Sohbete dön") the last one goes on.
   const started = useRef(false);
   useEffect(() => {
     if (started.current) return;
     started.current = true;
-    const { q, guide: kind, voice } = params;
-    if (q || kind || voice === '1') clear();
+    const { q, guide: kind, voice, focus } = params;
+    if (q || kind || voice === '1' || focus === '1') clear();
     if (q) setTimeout(() => ask(q), 0);
     else if (kind) setTimeout(() => pick(kind as GuideKind), 0);
     else if (voice === '1' && dictation.mode !== 'none') setTimeout(dictation.start, 350);
