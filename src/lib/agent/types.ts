@@ -1,4 +1,5 @@
 import type { AdaptKind } from '@/lib/adapt';
+import type { GuideKind } from '@/lib/agent/capabilities';
 import type { Creator, GenerationJob, RecipeEntry } from '@/lib/types';
 
 /** One line of the work log ("“bulgur pilavı” aranıyor" → "3 tarif bulundu"). */
@@ -95,7 +96,14 @@ export interface AssistantTurn {
   ms?: number;
 }
 
-export type AgentTurn = UserTurn | AssistantTurn;
+/** A question card the app shows itself (lib/agent/capabilities); never sent to the server. */
+export interface GuideTurn {
+  id: string;
+  role: 'guide';
+  kind: GuideKind;
+}
+
+export type AgentTurn = UserTurn | AssistantTurn | GuideTurn;
 
 /** A message as the server reads the history; refs are the cards an answer showed. */
 export interface AgentHistoryTurn {

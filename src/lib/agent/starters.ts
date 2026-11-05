@@ -25,8 +25,10 @@ export function assistantStarters({ pantryCount, hour = new Date().getHours() }:
 export const ASK_EXAMPLES = [
   'İçinde bulgur olan yemekler…',
   'Sütlü tatlıları getir…',
-  'Dolabıma yumurta ekle…',
-  'Bu haftaya menü hazırla…',
+  'Bir şefin tariflerini getir…',
   'Mercimek çorbası tarifi var mı?',
+  'Sütsüz, 20 dakikalık tatlılar…',
+  'Dolabıma yumurta ekle…',
+  'Bu haftaya akşam menüsü hazırla…',
   'Eksikleri alışveriş listeme ekle…',
 ];

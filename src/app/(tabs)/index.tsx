@@ -4,7 +4,6 @@ import { RefreshControl, ScrollView, StyleSheet, useWindowDimensions, View } fro
 
 import { AssistantHero } from '@/components/home/assistant-hero';
 import { CategoryTiles } from '@/components/home/category-tiles';
-import { ChefHero } from '@/components/home/chef-hero';
 import { CreatorRail } from '@/components/home/creator-rail';
 import { FeaturedRecipe } from '@/components/home/featured-recipe';
 import { GenerationStatus } from '@/components/home/generation-status';
@@ -31,9 +30,9 @@ const FEATURED = 5;
 const HOME_CATEGORIES = 6;
 
 /**
- * Home. On the page: who you are, the AI chef assistant (ask or say anything the app can do), and
- * the two main jobs as two slim strips, one under the other: a dark video strip (Instagram) and the
- * orange "write me a recipe". The sheet gives the food the room: background recipes, the newest recipes as large photo
+ * Home. On the page: who you are, the AI chef assistant (ask, say or tap a job: ingredients,
+ * accounts, categories, the pantry, menus, a new recipe) and a quiet row for adding a recipe from an
+ * Instagram video. The sheet gives the food the room: background recipes, the newest recipes as large photo
  * cards to swipe, what the pantry can cook, the latest ones, categories and the accounts.
  */
 export default function HomeScreen() {
@@ -90,10 +89,7 @@ export default function HomeScreen() {
               onInbox={() => router.push('/inbox')}
             />
             <AssistantHero />
-            <View style={styles.heroes}>
-              <ReelHero />
-              <ChefHero />
-            </View>
+            <ReelHero />
           </>
         }>
         <View style={styles.sheet}>
@@ -174,7 +170,6 @@ function FeaturedSkeleton() {
 }
 
 const styles = StyleSheet.create({
-  heroes: { gap: 8 },
   sheet: { paddingHorizontal: ScreenPadding, paddingTop: 4, paddingBottom: 32, gap: 32 },
   section: { gap: 14 },
   bleed: { marginHorizontal: -ScreenPadding },
