@@ -60,7 +60,7 @@ function history(list: AgentTurn[]): AgentHistoryTurn[] {
       continue;
     }
     if (t.role === 'guide' || t.error || t.streaming) continue;
-    const refs = t.blocks.flatMap(refsOf).slice(0, 8);
+    const refs = t.blocks.flatMap(refsOf).slice(0, 12);
     out.push({ role: 'assistant', content: t.text, refs: refs.length ? refs : undefined });
   }
   return out.slice(-10);

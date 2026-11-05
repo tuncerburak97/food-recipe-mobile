@@ -177,16 +177,18 @@ export default function AgentScreen() {
     [ask, guide, pantryCount],
   );
 
-  // Opened from Home: with a question, a tile or the mic.
+  // Opened from Home or Search with a question, a tile or the mic: that starts a new conversation.
+  // Without them ("Sohbete dön") the last one goes on.
   const started = useRef(false);
   useEffect(() => {
     if (started.current) return;
     started.current = true;
-    const { q, guide: kind } = params;
+    const { q, guide: kind, voice } = params;
+    if (q || kind || voice === '1') clear();
     if (q) setTimeout(() => ask(q), 0);
     else if (kind) setTimeout(() => pick(kind as GuideKind), 0);
-    else if (params.voice === '1' && dictation.mode !== 'none') setTimeout(dictation.start, 350);
-  }, [params, ask, pick, dictation]);
+    else if (voice === '1' && dictation.mode !== 'none') setTimeout(dictation.start, 350);
+  }, [params, ask, pick, clear, dictation]);
 
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
