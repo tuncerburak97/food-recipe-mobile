@@ -27,7 +27,8 @@ function Spans({ line }: { line: string }) {
  */
 export function AnswerText({ text }: { text: string }) {
   const { colors } = useTheme();
-  const lines = text.split('\n').filter((l) => l.trim().length > 0);
+  // "[shown: ...]" is the server's note for the model; never show one if the model echoes it.
+  const lines = text.split('\n').filter((l) => l.trim().length > 0 && !l.trimStart().startsWith('[shown:'));
   return (
     <View style={styles.box}>
       {lines.map((raw, i) => {

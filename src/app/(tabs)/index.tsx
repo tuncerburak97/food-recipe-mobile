@@ -2,12 +2,12 @@ import { router } from 'expo-router';
 import { useEffect } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 
+import { AssistantHero } from '@/components/home/assistant-hero';
 import { CategoryTiles } from '@/components/home/category-tiles';
 import { ChefHero } from '@/components/home/chef-hero';
 import { CreatorRail } from '@/components/home/creator-rail';
 import { FeaturedRecipe } from '@/components/home/featured-recipe';
 import { GenerationStatus } from '@/components/home/generation-status';
-import { AskBar } from '@/components/home/ask-bar';
 import { HomeHeader } from '@/components/home/home-header';
 import { KitchenShortcuts } from '@/components/home/kitchen-shortcuts';
 import { ReelHero } from '@/components/home/reel-hero';
@@ -15,10 +15,8 @@ import { RecipeCard } from '@/components/recipe/recipe-card';
 import { Button } from '@/components/ui/button';
 import { EmptyState, ErrorState } from '@/components/ui/empty-state';
 import { SheetHeader, sheetScrollStyles } from '@/components/ui/layout';
-import { SearchField } from '@/components/ui/search-field';
 import { SectionHeader } from '@/components/ui/section-header';
 import { SkeletonBlock, SkeletonPulse } from '@/components/ui/skeleton';
-import { Text } from '@/components/ui/text';
 import { Radius, ScreenPadding } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { describeError } from '@/lib/api';
@@ -33,9 +31,9 @@ const FEATURED = 5;
 const HOME_CATEGORIES = 6;
 
 /**
- * Home. On the page: who you are, one question ("Bugün ne pişirelim?"), search and the two main
- * jobs as two slim strips, one under the other: a dark video strip (Instagram) and the orange AI
- * chef. The sheet gives the food the room: background recipes, the newest recipes as large photo
+ * Home. On the page: who you are, the AI chef assistant (ask or say anything the app can do), and
+ * the two main jobs as two slim strips, one under the other: a dark video strip (Instagram) and the
+ * orange "write me a recipe". The sheet gives the food the room: background recipes, the newest recipes as large photo
  * cards to swipe, what the pantry can cook, the latest ones, categories and the accounts.
  */
 export default function HomeScreen() {
@@ -91,11 +89,7 @@ export default function HomeScreen() {
               unseen={generations.data?.unseen ?? 0}
               onInbox={() => router.push('/inbox')}
             />
-            <Text variant="display" accessibilityRole="header" style={styles.question}>
-              Bugün ne pişirelim?
-            </Text>
-            <SearchField onPress={() => router.navigate('/search')} placeholder="Tarif, malzeme ya da hesap ara" tone="prominent" />
-            <AskBar />
+            <AssistantHero />
             <View style={styles.heroes}>
               <ReelHero />
               <ChefHero />
@@ -180,7 +174,6 @@ function FeaturedSkeleton() {
 }
 
 const styles = StyleSheet.create({
-  question: { marginTop: 4 },
   heroes: { gap: 8 },
   sheet: { paddingHorizontal: ScreenPadding, paddingTop: 4, paddingBottom: 32, gap: 32 },
   section: { gap: 14 },

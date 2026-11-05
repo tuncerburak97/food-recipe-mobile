@@ -1,11 +1,13 @@
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { useCallback, useSyncExternalStore } from 'react';
 
 import { ApiError, describeError } from '@/lib/api';
 import { streamAgent } from '@/lib/agent/stream';
-import type { AgentAction, AgentEvent, AgentHistoryTurn, AgentTurn, AssistantTurn } from '@/lib/agent/types';
+import { startAdapt } from '@/lib/agent/tasks';
+import type { AgentAction, AgentBlock, AgentEvent, AgentHistoryTurn, AgentTurn, AssistantTurn } from '@/lib/agent/types';
+import type { GenerationJob } from '@/lib/types';
 
 // One conversation for the whole app, kept in memory: it survives opening a recipe from the chat
 // and coming back, and starts over when the app restarts or the user clears it.
@@ -28,6 +30,26 @@ const snapshot = () => turns;
 let seq = 0;
 const newId = () => `t${Date.now().toString(36)}${(seq++).toString(36)}`;
 
+type Ref = NonNullable<AgentHistoryTurn['refs']>[number];
+
+/** The ids a card showed, so the server can resolve "ikincisini aç" in the next message. */
+function refsOf(b: AgentBlock): Ref[] {
+  switch (b.type) {
+    case 'recipes':
+      return b.recipes.map((r) => ({ kind: 'recipe', id: r.entry.id, title: r.entry.recipe.title }));
+    case 'plan':
+      return b.plan.map((p) => ({ kind: 'recipe', id: p.recipe.entry.id, title: p.recipe.entry.recipe.title }));
+    case 'creators':
+      return b.creators.map((c) => ({ kind: 'creator', id: c.username, title: c.full_name }));
+    case 'notice':
+      return b.links.filter((l) => l.screen === 'recipe' && l.id).map((l) => ({ kind: 'recipe', id: l.id!, title: b.lines[0] ?? '' }));
+    case 'adapt':
+      return [{ kind: 'recipe', id: b.entryId, title: b.title }];
+    default:
+      return [];
+  }
+}
+
 /** The history the server reads: the last turns, answers with the cards they showed. */
 function history(list: AgentTurn[]): AgentHistoryTurn[] {
   const out: AgentHistoryTurn[] = [];
@@ -37,16 +59,9 @@ function history(list: AgentTurn[]): AgentHistoryTurn[] {
       continue;
     }
     if (t.error || t.streaming) continue;
-    const refs: NonNullable<AgentHistoryTurn['refs']> = t.blocks
-      .flatMap((b): NonNullable<AgentHistoryTurn['refs']> =>
-        b.type === 'recipes'
-          ? b.recipes.map((r) => ({ kind: 'recipe', id: r.entry.id, title: r.entry.recipe.title }))
-          : b.creators.map((c) => ({ kind: 'creator', id: c.username, title: c.full_name })),
-      )
-      .slice(0, 8);
+    const refs = t.blocks.flatMap(refsOf).slice(0, 8);
     out.push({ role: 'assistant', content: t.text, refs: refs.length ? refs : undefined });
   }
-  // Drop answers whose question was removed, so roles keep alternating.
   return out.slice(-10);
 }
 
@@ -71,6 +86,8 @@ function reduce(t: AssistantTurn, e: AgentEvent): AssistantTurn {
       return { ...t, text: '' };
     case 'block':
       return { ...t, blocks: [...t.blocks.filter((b) => b.id !== e.block.id), e.block] };
+    case 'suggestions':
+      return { ...t, suggestions: e.items };
     case 'action':
       return { ...t, action: e.action };
     case 'done':
@@ -80,11 +97,45 @@ function reduce(t: AssistantTurn, e: AgentEvent): AssistantTurn {
   }
 }
 
+/** Keeps the rest of the app in step with what an answer found or changed. */
+function sync(client: QueryClient, b: AgentBlock) {
+  switch (b.type) {
+    case 'recipes':
+    case 'plan':
+      // Opening a card is instant: the detail screen finds the entry in the cache.
+      for (const r of b.type === 'recipes' ? b.recipes : b.plan.map((p) => p.recipe)) {
+        client.setQueryData(['recipe', r.entry.id], (old: unknown) => old ?? r.entry);
+      }
+      return;
+    case 'notice':
+      for (const c of b.changed) {
+        if (c === 'pantry') client.invalidateQueries({ queryKey: ['kitchen'] });
+        if (c === 'shopping') client.invalidateQueries({ queryKey: ['kitchen', 'shopping'] });
+        if (c === 'recipes') {
+          client.invalidateQueries({ queryKey: ['recipes'] });
+          client.invalidateQueries({ queryKey: ['me'] });
+        }
+        if (c === 'profile') client.invalidateQueries({ queryKey: ['me'] });
+      }
+      return;
+    case 'job':
+      // Home's "hazırlanıyor" row and the inbox pick the job up at once.
+      client.setQueryData<{ items: GenerationJob[]; unseen: number }>(['generations'], (old) =>
+        old ? { ...old, items: [b.job, ...old.items.filter((j) => j.id !== b.job.id)] } : { items: [b.job], unseen: 0 },
+      );
+      client.invalidateQueries({ queryKey: ['generations'] });
+      return;
+  }
+}
+
 /** Where an answer's "open" goes. */
-export function openScreen(a: AgentAction) {
+export function openScreen(a: Pick<AgentAction, 'screen' | 'id'>) {
   switch (a.screen) {
     case 'recipe':
       if (a.id) router.push(`/recipe/${encodeURIComponent(a.id)}`);
+      return;
+    case 'cook':
+      if (a.id) router.push(`/cook/${encodeURIComponent(a.id)}`);
       return;
     case 'creator':
       if (a.id) router.push(`/creator/${encodeURIComponent(a.id)}`);
@@ -108,10 +159,22 @@ export function openScreen(a: AgentAction) {
       router.push('/voice-recipe');
       return;
     case 'add':
-      router.push('/add');
+      router.push(a.id ? { pathname: '/add', params: { url: a.id } } : '/add');
+      return;
+    case 'inbox':
+      router.push('/inbox');
+      return;
+    case 'settings':
+      router.navigate('/settings');
+      return;
+    case 'search':
+      router.navigate(a.id ? { pathname: '/search', params: { category: a.id } } : '/search');
       return;
   }
 }
+
+/** An Instagram post link in the message: the add screen takes it from here, no model call needed. */
+const REEL_URL = /https?:\/\/(?:www\.)?instagram\.com\/(?:reels?|p|tv)\/[\w-]+[^\s]*/i;
 
 /** The assistant chat: the turns, and send / stop / retry / clear. */
 export function useAgentChat() {
@@ -125,7 +188,7 @@ export function useAgentChat() {
       controller?.abort();
       const ctrl = new AbortController();
       controller = ctrl;
-      const seq = ++runSeq;
+      const turnSeq = ++runSeq;
       const reply: AssistantTurn = { id: newId(), role: 'assistant', steps: [], text: '', blocks: [], streaming: true };
       set([...base, reply]);
       let action: AgentAction | undefined;
@@ -134,12 +197,17 @@ export function useAgentChat() {
           history(base),
           (e) => {
             if (ctrl.signal.aborted) return;
-            if (e.type === 'block' && e.block.type === 'recipes') {
-              // Opening a card is instant: the detail screen finds the entry in the cache.
-              for (const r of e.block.recipes) client.setQueryData(['recipe', r.entry.id], (old: unknown) => old ?? r.entry);
+            if (e.type === 'block') {
+              if (e.block.type === 'adapt') {
+                const block = { ...e.block, taskKey: `${reply.id}:${e.block.id}` };
+                startAdapt(client, block.taskKey, block.entryId, block.kind);
+                e = { ...e, block };
+              }
+              sync(client, e.block);
             }
             if (e.type === 'action') action = e.action;
-            patchLast((t) => reduce(t, e));
+            const ev = e;
+            patchLast((t) => reduce(t, ev));
           },
           ctrl.signal,
         );
@@ -149,7 +217,7 @@ export function useAgentChat() {
           Haptics.selectionAsync();
           // A short beat so the user sees what is being opened.
           setTimeout(() => {
-            if (runSeq === seq) openScreen(go);
+            if (runSeq === turnSeq) openScreen(go);
           }, 650);
         }
       } catch (e) {
@@ -172,7 +240,22 @@ export function useAgentChat() {
       const content = text.trim();
       if (!content) return;
       Haptics.selectionAsync();
-      run([...turns, { id: newId(), role: 'user', text: content, voice: opts?.voice }]);
+      const user: AgentTurn = { id: newId(), role: 'user', text: content, voice: opts?.voice };
+      const link = REEL_URL.exec(content)?.[0];
+      if (link) {
+        const turnSeq = ++runSeq;
+        const go: AgentAction = { type: 'open', screen: 'add', id: link };
+        set([
+          ...turns,
+          user,
+          { id: newId(), role: 'assistant', steps: [], blocks: [], streaming: false, text: 'Bu videonun tarifini çıkarıyorum, ekleme ekranını açıyorum.', action: go },
+        ]);
+        setTimeout(() => {
+          if (runSeq === turnSeq) openScreen(go);
+        }, 500);
+        return;
+      }
+      run([...turns, user]);
     },
     [run],
   );
@@ -192,4 +275,9 @@ export function useAgentChat() {
   }, []);
 
   return { turns: list, busy, send, retry, stop, clear };
+}
+
+/** The conversation without the actions, for places that only show it (Home's "continue" row). */
+export function useAgentTurns(): AgentTurn[] {
+  return useSyncExternalStore(subscribe, snapshot, snapshot);
 }

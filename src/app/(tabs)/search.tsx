@@ -1,5 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
+import { StyleSheet } from 'react-native';
 
 import { PageHeader } from '@/components/browse/page-header';
 import { CategoryChips } from '@/components/home/category-chips';
@@ -67,6 +68,16 @@ export default function SearchScreen() {
       header={
         <PageHeader title="Tarif ara" subtitle={counts?.total ? `${counts.total} tarif arasında ara` : 'Yemek, malzeme ya da hesap adıyla bul'}>
           <SearchField value={query} onChangeText={setQuery} placeholder="Yemek, malzeme ya da @hesap ara" tone="prominent" />
+          {query.trim().length >= 2 ? (
+            // The same words, asked to the assistant: it also understands "sütsüz", "20 dakikalık"...
+            <Chip
+              label={`“${query.trim()}” için AI Şef’e sor`}
+              icon="sparkles-outline"
+              kind="button"
+              onPress={() => router.push({ pathname: '/agent', params: { q: query.trim() } })}
+              style={styles.ask}
+            />
+          ) : null}
           <CategoryChips value={category} onChange={setCategory} counts={counts?.items} total={counts?.total} />
           <ChipRow>
             {QUICK_FILTERS.map((f) => {
@@ -81,3 +92,6 @@ export default function SearchScreen() {
   );
 }
 
+const styles = StyleSheet.create({
+  ask: { alignSelf: 'flex-start' },
+});
