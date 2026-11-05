@@ -21,26 +21,24 @@ import { Radius, ScreenPadding } from '@/constants/theme';
 import { openScreen, useAgentChat } from '@/hooks/use-agent-chat';
 import { useDictation, useDictationRecorder, type DictationRecorder } from '@/hooks/use-dictation';
 import { useTheme } from '@/hooks/use-theme';
+import { assistantStarters } from '@/lib/agent/starters';
 import type { AgentAction, AssistantTurn, UserTurn } from '@/lib/agent/types';
-
-const STARTERS = [
-  'Elimde pirinç ve soğan var, ne yapabilirim?',
-  'Bulgur pilavı tarifi var mı?',
-  '20 dakikada hazır bir kahvaltılık öner',
-  'Dolabımdakilerle ne pişirebilirim?',
-  'Tatlı tariflerini göster',
-];
+import { pantryItems, usePantry } from '@/lib/kitchen';
 
 const ACTION_LABELS: Record<AgentAction['screen'], string> = {
   recipe: 'Tarifi aç',
+  cook: 'Pişirmeye başla',
   creator: 'Hesabı aç',
   pantry: 'Dolabımı aç',
   shopping: 'Alışveriş listesini aç',
-  chef: 'AI Şef’i aç',
+  chef: 'AI Şef’e tarif yazdır',
   my_recipes: 'Tariflerimi aç',
   journal: 'Pişirdiklerimi aç',
   voice_recipe: 'Sesle tarif anlat',
   add: 'Tarif ekle',
+  inbox: 'Bildirimleri aç',
+  settings: 'Profili aç',
+  search: 'Aramayı aç',
 };
 
 function UserMessage({ turn }: { turn: UserTurn }) {
@@ -57,7 +55,7 @@ function UserMessage({ turn }: { turn: UserTurn }) {
   );
 }
 
-function AssistantMessage({ turn, latest, onRetry }: { turn: AssistantTurn; latest: boolean; onRetry: () => void }) {
+function AssistantMessage({ turn, latest, onRetry, onAsk }: { turn: AssistantTurn; latest: boolean; onRetry: () => void; onAsk: (q: string) => void }) {
   const { colors } = useTheme();
   const searchedNothing = !turn.streaming && !turn.error && turn.steps.length > 0 && turn.blocks.length === 0;
   return (
@@ -75,6 +73,13 @@ function AssistantMessage({ turn, latest, onRetry }: { turn: AssistantTurn; late
         {latest && searchedNothing && !turn.action ? (
           <Chip label="AI Şef’e tarif yaptır" icon="sparkles-outline" kind="button" onPress={() => router.push('/chef')} style={styles.chip} />
         ) : null}
+        {latest && !turn.streaming && turn.suggestions?.length ? (
+          <View style={styles.suggestions}>
+            {turn.suggestions.map((q) => (
+              <Chip key={q} label={q} icon="arrow-forward" kind="button" tone="sunken" size="sm" onPress={() => onAsk(q)} />
+            ))}
+          </View>
+        ) : null}
         {turn.error ? (
           <View style={[styles.error, { backgroundColor: colors.dangerSoft }]}>
             <Text variant="callout" color="danger">
@@ -90,6 +95,7 @@ function AssistantMessage({ turn, latest, onRetry }: { turn: AssistantTurn; late
 
 function Intro({ onPick, disabled }: { onPick: (q: string) => void; disabled: boolean }) {
   const { colors } = useTheme();
+  const pantryCount = pantryItems(usePantry().data).length;
   return (
     <View style={styles.intro}>
       <View style={[styles.introCard, { backgroundColor: colors.accentSoft }]}>
@@ -98,11 +104,11 @@ function Intro({ onPick, disabled }: { onPick: (q: string) => void; disabled: bo
           Ne pişirelim?
         </Text>
         <Text variant="subhead" color="textSecondary" align="center">
-          Elindekileri söyle, bir yemeğin ya da hesabın adını ver. Tarifleri bulup açarım.
+          Tarif bul, dolabını ve alışveriş listeni düzenle, menü hazırla, tarifleri uyarla. Yaz ya da söyle.
         </Text>
       </View>
       <View style={styles.starters}>
-        {STARTERS.map((q) => (
+        {assistantStarters({ pantryCount }).map((q) => (
           <Chip key={q} label={q} kind="button" tone="sunken" onPress={() => onPick(q)} disabled={disabled} />
         ))}
       </View>
@@ -117,11 +123,12 @@ function RecorderBridge({ attach }: { attach: (r: DictationRecorder | null) => v
 }
 
 /**
- * AI Şef: ask by typing or by voice ("bulgur pilavı var mı?", "elimde pirinç var", "Refika'nın
- * tarifleri"). It searches the app's recipes, shows them as cards and opens screens when asked.
+ * AI Şef: ask by typing or by voice. It finds recipes ("içinde bulgur olanlar", "Refika'nın
+ * tarifleri"), runs the kitchen (pantry, shopping list), saves, adapts and writes recipes, plans
+ * menus, and opens screens. Params: q (ask at once), voice=1 (start listening), focus=1 (keyboard).
  */
 export default function AgentScreen() {
-  const params = useLocalSearchParams<{ voice?: string; q?: string }>();
+  const params = useLocalSearchParams<{ voice?: string; q?: string; focus?: string }>();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const keyboardUp = useKeyboardVisible();
@@ -203,7 +210,7 @@ export default function AgentScreen() {
             t.role === 'user' ? (
               <UserMessage key={t.id} turn={t} />
             ) : (
-              <AssistantMessage key={t.id} turn={t} latest={i === turns.length - 1} onRetry={retry} />
+              <AssistantMessage key={t.id} turn={t} latest={i === turns.length - 1} onRetry={retry} onAsk={ask} />
             ),
           )}
         </LayoutAnimationConfig>
@@ -217,6 +224,7 @@ export default function AgentScreen() {
           busy={busy}
           onStop={stop}
           voice={{ ...dictation, start: startVoice, partial }}
+          autoFocus={params.focus === '1' && !params.q}
         />
       </StickyFooter>
     </KeyboardAvoidingView>
@@ -239,6 +247,7 @@ const styles = StyleSheet.create({
   avatar: { marginTop: 0 },
   assistantCol: { flex: 1, gap: 10, paddingTop: 4 },
   chip: { alignSelf: 'flex-start' },
+  suggestions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   error: { borderRadius: Radius.md, padding: 12, gap: 10 },
   retry: { alignSelf: 'flex-start' },
   footer: { paddingTop: 10 },

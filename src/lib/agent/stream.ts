@@ -2,8 +2,9 @@ import { fetch as expoFetch } from 'expo/fetch';
 import { Platform } from 'react-native';
 
 import { API_BASE_URL, ApiError, authHeaders, toEntry } from '@/lib/api';
-import type { AgentAction, AgentBlock, AgentEvent, AgentHistoryTurn, AgentStep } from '@/lib/agent/types';
-import type { ApiEntry, Creator } from '@/lib/types';
+import type { AdaptKind } from '@/lib/adapt';
+import type { AgentAction, AgentBlock, AgentChanged, AgentEvent, AgentHistoryTurn, AgentLink, AgentStep } from '@/lib/agent/types';
+import type { ApiEntry, Creator, GenerationJob } from '@/lib/types';
 
 /** The server pings every 15 s; no byte for this long means the connection dropped. */
 const IDLE_MS = 45_000;
@@ -39,18 +40,39 @@ export function createSseParser() {
   };
 }
 
-type RawBlock = { id: string; type: string; title?: string; recipes?: { entry: ApiEntry; missing?: string[]; partial?: boolean }[]; creators?: Creator[] };
+type RawItem = { entry: ApiEntry; missing?: string[]; partial?: boolean };
+
+type RawBlock = {
+  id: string;
+  type: string;
+  title?: string;
+  recipes?: RawItem[];
+  creators?: Creator[];
+  plan?: { label: string; recipe: RawItem }[];
+  notice?: { lines?: string[]; links?: AgentLink[]; changed?: AgentChanged[] };
+  job?: GenerationJob;
+  adapt?: { entry_id: number; kind: AdaptKind; label: string };
+};
+
+const toItem = (r: RawItem) => ({ entry: toEntry(r.entry), missing: r.missing, partial: r.partial });
 
 function toBlock(b: RawBlock): AgentBlock | null {
-  if (b.type === 'recipes') {
-    return {
-      id: b.id,
-      type: 'recipes',
-      title: b.title,
-      recipes: (b.recipes ?? []).map((r) => ({ entry: toEntry(r.entry), missing: r.missing, partial: r.partial })),
-    };
+  switch (b.type) {
+    case 'recipes':
+      return { id: b.id, type: 'recipes', title: b.title, recipes: (b.recipes ?? []).map(toItem) };
+    case 'creators':
+      return { id: b.id, type: 'creators', title: b.title, creators: b.creators ?? [] };
+    case 'plan':
+      return { id: b.id, type: 'plan', title: b.title, plan: (b.plan ?? []).map((p) => ({ label: p.label, recipe: toItem(p.recipe) })) };
+    case 'notice':
+      return { id: b.id, type: 'notice', title: b.title ?? '', lines: b.notice?.lines ?? [], links: b.notice?.links ?? [], changed: b.notice?.changed ?? [] };
+    case 'job':
+      return b.job ? { id: b.id, type: 'job', title: b.title ?? '', job: b.job } : null;
+    case 'adapt':
+      return b.adapt
+        ? { id: b.id, type: 'adapt', title: b.title ?? '', entryId: String(b.adapt.entry_id), kind: b.adapt.kind, label: b.adapt.label, taskKey: '' }
+        : null;
   }
-  if (b.type === 'creators') return { id: b.id, type: 'creators', title: b.title, creators: b.creators ?? [] };
   return null;
 }
 
@@ -75,6 +97,8 @@ export function toAgentEvent(name: string, raw: string): AgentEvent | null {
       const block = toBlock(d as unknown as RawBlock);
       return block ? { type: 'block', block } : null;
     }
+    case 'suggestions':
+      return { type: 'suggestions', items: Array.isArray(d.items) ? d.items.map(String) : [] };
     case 'action':
       return { type: 'action', action: d as unknown as AgentAction };
     case 'done':

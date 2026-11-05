@@ -29,13 +29,13 @@ export function ChefHero() {
       scaleTo={0.985}
       onPress={open}
       accessibilityRole="button"
-      accessibilityLabel="AI Şef. Ne pişirsem? Elindekilerle sana özel tarif yazsın."
+      accessibilityLabel="Ne pişirsem? Elindekilerle sana özel tarif yazdır."
       style={styles.strip}>
       <LinearGradient colors={[FROM, TO]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
       <ChefAvatar size={42} ring />
       <View style={styles.texts}>
         <Text variant="headline" tint="#fff" numberOfLines={1}>
-          AI Şef · Ne pişirsem?
+          Ne pişirsem? · Tarif yazdır
         </Text>
         <Text variant="footnote" tint={SOFT} numberOfLines={1}>
           {pantry.length ? `Dolabındaki ${pantry.length} malzemeyle tarif yazsın` : 'Elindekilerle sana özel tarif yazsın'}
