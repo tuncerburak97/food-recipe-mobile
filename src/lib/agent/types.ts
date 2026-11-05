@@ -44,7 +44,8 @@ export interface AgentLink {
 export type AgentChanged = 'pantry' | 'shopping' | 'recipes' | 'profile';
 
 export type AgentBlock =
-  | { id: string; type: 'recipes'; title?: string; recipes: AgentRecipeItem[] }
+  /** total: how many matched when only the best are shown; more: the screen with all of them. */
+  | { id: string; type: 'recipes'; title?: string; recipes: AgentRecipeItem[]; total?: number; more?: AgentLink }
   | { id: string; type: 'creators'; title?: string; creators: Creator[] }
   | { id: string; type: 'plan'; title?: string; plan: { label: string; recipe: AgentRecipeItem }[] }
   | { id: string; type: 'notice'; title: string; lines: string[]; links: AgentLink[]; changed: AgentChanged[] }
