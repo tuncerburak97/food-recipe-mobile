@@ -26,15 +26,6 @@ export const CAPABILITIES: Capability[] = [
 /** The four Home shows (the chat has them all): the jobs people start with most. */
 export const HOME_CAPABILITIES = CAPABILITIES.filter((c) => ['ingredient', 'creator', 'pantry', 'menu'].includes(c.kind));
 
-/** Things to ask that need no guide: the kitchen, a recipe, the profile, screens. */
-export const MORE_EXAMPLES = [
-  'Sütsüz tatlılar',
-  'Dolabıma yumurta ve domates ekle',
-  'Alışveriş listemde ne var?',
-  'Artık vejetaryenim',
-  'Bu hafta ne pişirdim?',
-];
-
 /** "a", "a ve b", "a, b ve c". */
 export function listTr(items: string[]): string {
   if (items.length <= 1) return items[0] ?? '';
