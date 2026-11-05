@@ -52,6 +52,9 @@
   },
   "scripts": {
     "start": "expo start",
+    "dev": "expo start --dev-client --port 8086",
+    "tunnel": "expo start --dev-client --port 8086 --tunnel",
+    "build:ios:development": "eas build --platform ios --profile development",
     "ios": "expo start --ios",
     "android": "expo start --android",
     "web": "expo start --web",
