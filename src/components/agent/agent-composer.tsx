@@ -19,6 +19,9 @@ interface Props {
   autoFocus?: boolean;
 }
 
+/** A little longer than the stack's push animation. */
+const FOCUS_DELAY_MS = 420;
+
 /** A ring that swells with the voice level. */
 function LevelRing({ level }: { level: number }) {
   const { colors } = useTheme();
@@ -40,6 +43,13 @@ export function AgentComposer({ value, onChangeText, onSend, busy, onStop, voice
   useEffect(() => {
     if (listening) input.current?.blur();
   }, [listening]);
+
+  // Focus once the screen has slid in: the keyboard rising during the push makes the layout jump.
+  useEffect(() => {
+    if (!autoFocus) return;
+    const t = setTimeout(() => input.current?.focus(), FOCUS_DELAY_MS);
+    return () => clearTimeout(t);
+  }, [autoFocus]);
 
   if (listening) {
     const transcribing = voice.phase === 'transcribing';
@@ -74,7 +84,6 @@ export function AgentComposer({ value, onChangeText, onSend, busy, onStop, voice
         selectionColor={colors.accent}
         multiline
         maxLength={800}
-        autoFocus={autoFocus}
         submitBehavior="submit"
         returnKeyType="send"
         onSubmitEditing={() => canSend && !busy && onSend()}
