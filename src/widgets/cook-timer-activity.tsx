@@ -28,9 +28,11 @@ function CookTimerActivity(props: CookTimerProps, environment: LiveActivityEnvir
   const range = { lower: new Date(props.startedAt), upper: new Date(props.endsAt) };
   const pauseTime = props.pausedAt ? new Date(props.pausedAt) : undefined;
   const dim = environment.isLuminanceReduced === true;
+  // Past its end time with the app closed: say so instead of a clock stuck at 0:00.
+  const done = props.done === true || (!pauseTime && environment.isStale === true);
 
   const clock = (size: number) =>
-    props.done ? (
+    done ? (
       <Text modifiers={[font({ size: size * 0.7, weight: 'semibold' }), foregroundStyle(accent)]}>Süre doldu</Text>
     ) : (
       <Text
@@ -58,7 +60,7 @@ function CookTimerActivity(props: CookTimerProps, environment: LiveActivityEnvir
           <Spacer />
           {clock(30)}
         </HStack>
-        {props.done || pauseTime ? null : <ProgressView timerInterval={range} modifiers={[tint(accent)]} />}
+        {done || pauseTime ? null : <ProgressView timerInterval={range} modifiers={[tint(accent)]} />}
       </VStack>
     ),
     compactLeading: <Image systemName="timer" modifiers={[foregroundStyle(accent)]} />,

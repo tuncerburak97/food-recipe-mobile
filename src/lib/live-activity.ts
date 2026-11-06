@@ -1,6 +1,6 @@
 import { requireOptionalNativeModule } from 'expo';
 import Constants from 'expo-constants';
-import { Platform } from 'react-native';
+import { AppState, Platform } from 'react-native';
 
 import type { CookTimer } from '@/store/timers';
 import type { CookTimerProps } from '@/widgets/cook-timer-activity';
@@ -16,6 +16,16 @@ type Instance = ReturnType<Factory['start']>;
 let factory: Factory | null = null;
 let instance: Instance | null = null;
 let shownKey = '';
+let latest: CookTimer[] = [];
+/** Activities handed to iOS with a removal time when the app went to the background. */
+let handedOff: Instance[] = [];
+
+/** How long a finished timer stays on the lock screen once the app is gone. */
+const AFTER_END_MS = 10 * 60_000;
+/** A paused timer cannot go on by itself: it stays this long, then iOS removes it. */
+const PAUSED_KEEP_MS = 60 * 60_000;
+/** iOS removes an ended activity at most 4 hours later. */
+const MAX_KEEP_MS = 4 * 60 * 60_000 - 60_000;
 
 function getFactory(): Factory | null {
   if (!available) return null;
@@ -57,8 +67,10 @@ function propsFor(timers: CookTimer[]): { props: CookTimerProps; entryId: string
  * screen and the Dynamic Island after leaving the app. Called whenever the timers change.
  */
 export function syncLiveActivity(timers: CookTimer[]) {
+  latest = timers;
   const f = getFactory();
   if (!f) return;
+  if (AppState.currentState === 'background') return;
   try {
     const next = propsFor(timers);
     if (!next) {
@@ -71,9 +83,55 @@ export function syncLiveActivity(timers: CookTimer[]) {
     const key = JSON.stringify({ ...next.props, pausedAt: next.props.pausedAt ? 1 : 0, endsAt: next.props.pausedAt ? 0 : next.props.endsAt });
     if (key === shownKey) return;
     shownKey = key;
-    if (instance) instance.update(next.props).catch(() => {});
-    else instance = f.start(next.props, `${scheme}://cook/${next.entryId}`);
+    const stale = next.props.pausedAt || next.props.done ? undefined : new Date(next.props.endsAt);
+    if (instance) instance.update(next.props, stale).catch(() => {});
+    else instance = f.start(next.props, `${scheme}://cook/${next.entryId}`, stale);
   } catch {
     // A Live Activity is a nice extra; it must never break the timer.
   }
+}
+
+/**
+ * Only the open app can remove a Live Activity, so when it goes to the background (closing it from
+ * the app switcher passes through here too) the activity is ended with a removal time: iOS keeps
+ * the countdown running on the lock screen and removes it on its own 10 minutes after the timer
+ * ends. Coming back starts a fresh one from the timers.
+ */
+function handOff() {
+  if (!instance) return;
+  const now = Date.now();
+  const running = latest.filter((t) => t.status === 'running' && t.endsAt != null).map((t) => t.endsAt!);
+  let removeAt: number | null = null;
+  if (running.length) removeAt = Math.max(...running) + AFTER_END_MS;
+  else if (latest.some((t) => t.status === 'paused')) removeAt = now + PAUSED_KEEP_MS;
+  const old = instance;
+  instance = null;
+  shownKey = '';
+  if (removeAt == null) {
+    old.end('immediate').catch(() => {});
+    return;
+  }
+  handedOff.push(old);
+  old.end({ after: new Date(Math.min(removeAt, now + MAX_KEEP_MS)) }).catch(() => {});
+}
+
+function takeBack() {
+  for (const old of handedOff) old.end('immediate').catch(() => {});
+  handedOff = [];
+  // Anything else still showing (a crash, an older run) has no timer behind it.
+  if (!instance && factory) for (const old of factory.getInstances()) old.end('immediate').catch(() => {});
+  syncLiveActivity(latest);
+}
+
+if (available) {
+  // Clears leftovers from a previous run as soon as the app starts.
+  getFactory();
+  AppState.addEventListener('change', (state) => {
+    try {
+      if (state === 'background') handOff();
+      else if (state === 'active') takeBack();
+    } catch {
+      // Never break the app over the lock screen extra.
+    }
+  });
 }
