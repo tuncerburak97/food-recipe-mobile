@@ -6,7 +6,7 @@ import { setPendingShare } from '@/store/pending-share';
 /**
  * Rewrites deep links before Expo Router handles them. When a Reel is shared to the app from Instagram
  * (or Safari), the share extension opens the app with an `expo-sharing` link; we pick the Instagram link
- * out of the shared text/URL and open the add flow with it, which fetches the reel right away.
+ * out of the shared text/URL: a reel is saved in the background (/import), anything else opens the add flow.
  */
 export function redirectSystemPath({ path }: { path: string; initial: boolean }): string {
   try {
@@ -24,5 +24,7 @@ export function redirectSystemPath({ path }: { path: string; initial: boolean })
   const link = extractInstagramLink(shared) ?? shared.trim();
   // Also kept aside: on first launch onboarding comes first, and the link opens right after it.
   if (link) setPendingShare(link);
-  return link ? `/add?url=${encodeURIComponent(link)}&shared=1` : '/add';
+  // A reel goes to the quick path (saved in the background, back to Instagram); anything else to "Tarif ekle".
+  if (!link) return '/add';
+  return extractInstagramLink(link) ? `/import?url=${encodeURIComponent(link)}` : `/add?url=${encodeURIComponent(link)}&shared=1`;
 }

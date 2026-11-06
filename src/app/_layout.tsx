@@ -11,6 +11,7 @@ import { TimerAlarm } from '@/components/cook/timer-alarm';
 import { GenerationWatcher, ToastHost } from '@/components/ui/toast-host';
 import { useAppFonts } from '@/hooks/use-app-fonts';
 import { useTheme } from '@/hooks/use-theme';
+import { usePushNotifications } from '@/lib/push';
 import { queryClient } from '@/lib/queries';
 import { AppearanceProvider } from '@/store/appearance';
 import { takePendingShare } from '@/store/pending-share';
@@ -59,6 +60,7 @@ function RootStack() {
   const { status, retry } = useSession();
   const fontsReady = useAppFonts();
   const ready = status !== 'loading' && fontsReady;
+  usePushNotifications(ready && status === 'ready');
 
   useEffect(() => {
     if (ready) SplashScreen.hideAsync();
@@ -71,7 +73,7 @@ function RootStack() {
     previous.current = status;
     if (!finishedOnboarding) return;
     const link = takePendingShare();
-    if (link) setTimeout(() => router.push(`/add?url=${encodeURIComponent(link)}&shared=1`), 300);
+    if (link) setTimeout(() => router.push(`/import?url=${encodeURIComponent(link)}`), 300);
   }, [status]);
 
   if (!ready) return null;
@@ -108,6 +110,7 @@ function RootStack() {
           <Stack.Screen name="chef" options={{ gestureEnabled: false, contentStyle: { backgroundColor: colors.surface } }} />
           <Stack.Screen name="cook/[id]" options={{ presentation: 'fullScreenModal' }} />
           <Stack.Screen name="create" options={{ presentation: 'formSheet', sheetAllowedDetents: 'fitToContents', sheetGrabberVisible: true, sheetCornerRadius: 28, contentStyle: { backgroundColor: colors.surface } }} />
+          <Stack.Screen name="import" options={{ presentation: 'modal', gestureEnabled: false }} />
           <Stack.Screen name="add" options={{ presentation: 'modal', contentStyle: { backgroundColor: colors.surface } }} />
           <Stack.Screen name="assistant/[id]" options={{ presentation: 'modal', contentStyle: { backgroundColor: colors.surface } }} />
           <Stack.Screen name="pantry" options={{ contentStyle: { backgroundColor: colors.surface } }} />

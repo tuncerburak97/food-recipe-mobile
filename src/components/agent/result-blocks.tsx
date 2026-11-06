@@ -16,7 +16,7 @@ import { useTask } from '@/lib/agent/tasks';
 import type { AgentBlock, AgentLink, AgentRecipeItem } from '@/lib/agent/types';
 import { CATEGORY_LABELS, formatMinutes, totalMinutes } from '@/lib/format';
 import { useGenerations } from '@/lib/queries';
-import type { Creator, GenerationJob } from '@/lib/types';
+import { jobIngredients, type Creator, type GenerationJob } from '@/lib/types';
 
 const FIRST = 4;
 
@@ -224,7 +224,7 @@ function JobBlock({ job }: { job: GenerationJob }) {
   return (
     <StatusCard icon="sparkles" tone="neutral" busy title="AI Şef tarifini yazıyor">
       <Text variant="callout" color="textSecondary">
-        {live.request.ingredients.slice(0, 4).join(', ')} · yaklaşık 1 dakika
+        {jobIngredients(live).slice(0, 4).join(', ')} · yaklaşık 1 dakika
       </Text>
       <Text variant="footnote" color="textTertiary">
         Burada bekleyebilir ya da çıkabilirsin; hazır olunca haber veririz.

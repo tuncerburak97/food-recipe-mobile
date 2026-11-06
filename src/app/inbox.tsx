@@ -14,8 +14,8 @@ import { ScreenPadding } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { describeError } from '@/lib/api';
 import { relativeTime } from '@/lib/format';
-import { useGenerations, useMarkGenerationsSeen, useStartGeneration } from '@/lib/queries';
-import type { GenerationJob } from '@/lib/types';
+import { useGenerations, useImportRecipe, useMarkGenerationsSeen, useStartGeneration } from '@/lib/queries';
+import { isReelImport, jobIngredients, type GenerationJob } from '@/lib/types';
 import { showToast } from '@/store/toast';
 
 type Section = { title: string; data: GenerationJob[] };
@@ -124,18 +124,28 @@ function StatusMark({ status }: { status: GenerationJob['status'] }) {
 function JobRow({ job }: { job: GenerationJob }) {
   const { colors } = useTheme();
   const start = useStartGeneration();
-  const ingredients = job.request.ingredients.join(', ');
+  const importRecipe = useImportRecipe();
+  const reel = isReelImport(job.request);
+  const ingredients = reel ? 'Instagram’dan' : jobIngredients(job).join(', ');
   const time = relativeTime(jobTime(job));
   const done = job.status === 'done';
   const failed = job.status === 'failed';
-  const title = done ? (job.title ?? 'Tarifin hazır') : failed ? 'Tarif hazırlanamadı' : 'Tarifin hazırlanıyor';
+  const title = done
+    ? (job.title ?? 'Tarifin hazır')
+    : failed
+      ? reel
+        ? 'Tarif eklenemedi'
+        : 'Tarif hazırlanamadı'
+      : reel
+        ? 'Tarif defterine ekleniyor'
+        : 'Tarifin hazırlanıyor';
   const detail = failed && job.error ? job.error.message : ingredients;
 
-  const retry = () =>
-    start.mutate(job.request, {
-      onSuccess: () => showToast({ title: 'Tarifin hazırlanıyor', message: 'Hazır olunca haber vereceğiz.' }),
-      onError: (e) => showToast({ title: describeError(e).title, message: describeError(e).message }),
-    });
+  const handlers = {
+    onSuccess: () => showToast({ title: 'Tarifin hazırlanıyor', message: 'Hazır olunca haber vereceğiz.' }),
+    onError: (e: unknown) => showToast({ title: describeError(e).title, message: describeError(e).message }),
+  };
+  const retry = () => (isReelImport(job.request) ? importRecipe.mutate(job.request.url, handlers) : start.mutate(job.request, handlers));
 
   const texts = (
     <View style={styles.texts}>
@@ -161,8 +171,8 @@ function JobRow({ job }: { job: GenerationJob }) {
           icon="refresh"
           variant="secondary"
           size="sm"
-          loading={start.isPending}
-          accessibilityHint="Aynı malzemelerle tarifi yeniden hazırlar"
+          loading={start.isPending || importRecipe.isPending}
+          accessibilityHint={reel ? "Tarifi yeniden eklemeyi dener" : "Aynı malzemelerle tarifi yeniden hazırlar"}
           onPress={retry}
           style={styles.retry}
         />

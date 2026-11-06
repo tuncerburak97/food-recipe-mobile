@@ -191,10 +191,17 @@ export interface ChefRequest {
 }
 
 /** A recipe being prepared in the background (recipe-backend generation_jobs). */
+/** A reel shared from Instagram, saved to the book in the background. */
+export interface ReelImportRequest {
+  kind: 'reel';
+  url: string;
+}
+
 export interface GenerationJob {
   id: string;
   status: 'pending' | 'done' | 'failed';
-  request: ChefRequest;
+  /** An AI chef request, or a reel import (kind "reel"). */
+  request: ChefRequest | ReelImportRequest;
   title: string | null;
   entry_id: number | null;
   error: ApiErrorBody | null;
@@ -343,4 +350,13 @@ export interface AssistantAnswer {
   off_topic: boolean;
   suggestions: string[];
   proposal?: AssistantProposal;
+}
+
+export function isReelImport(req: GenerationJob['request']): req is ReelImportRequest {
+  return (req as ReelImportRequest).kind === 'reel';
+}
+
+/** The ingredients of an AI chef job (none for a reel import). */
+export function jobIngredients(job: GenerationJob): string[] {
+  return isReelImport(job.request) ? [] : job.request.ingredients;
 }

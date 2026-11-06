@@ -228,6 +228,16 @@ export const api = {
     return request<GenerationJob>('/api/v1/recipes/generate', { method: 'POST', body: json(req) }, 20_000);
   },
 
+  /** The share sheet's quick path: the reel's recipe is saved to the book in the background. */
+  importRecipe(url: string) {
+    return request<GenerationJob>('/api/v1/me/recipes/import', { method: 'POST', body: json({ url }) }, 20_000);
+  },
+
+  /** Remembers this device for "your recipe is ready" notifications. */
+  savePushToken(token: string, platform: string) {
+    return request<{ saved: boolean }>('/api/v1/me/push-token', { method: 'PUT', body: json({ token, platform }) }, 15_000);
+  },
+
   /** The user's background recipes, newest first, and how many finished ones they have not seen. */
   listGenerations() {
     return request<{ items: GenerationJob[]; unseen: number }>('/api/v1/me/generations?limit=20', { method: 'GET' }, 15_000);

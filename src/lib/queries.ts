@@ -105,6 +105,20 @@ export function useStartGeneration() {
   });
 }
 
+/** Starts a reel import; the job shows in the inbox (and is polled) at once. */
+export function useImportRecipe() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: api.importRecipe,
+    onSuccess: (job) => {
+      client.setQueryData<{ items: GenerationJob[]; unseen: number }>(['generations'], (old) =>
+        old ? { ...old, items: [job, ...old.items.filter((j) => j.id !== job.id)] } : { items: [job], unseen: 0 },
+      );
+      client.invalidateQueries({ queryKey: ['generations'] });
+    },
+  });
+}
+
 export function useMarkGenerationsSeen() {
   const client = useQueryClient();
   return useMutation({

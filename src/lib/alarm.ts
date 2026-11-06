@@ -8,7 +8,8 @@ const available = Platform.OS !== 'web' && requireOptionalNativeModule('ExpoNoti
 type NotificationsModule = typeof import('expo-notifications');
 let cached: NotificationsModule | null = null;
 
-function notifications(): NotificationsModule | null {
+/** expo-notifications, or null where this build has no native module (alarms, push). */
+export function notifications(): NotificationsModule | null {
   if (!available) return null;
   if (!cached) {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
