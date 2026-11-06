@@ -6,7 +6,7 @@ import { Text } from '@/components/ui/text';
 import { useTheme } from '@/hooks/use-theme';
 
 const STEPS = [
-  'Instagram’da yemek videosunu aç.',
+  'Instagram’da ya da YouTube’da yemek videosunu aç.',
   'Videonun altındaki uçak (Paylaş) simgesine dokun.',
   '“Bağlantıyı kopyala”ya dokun ve buraya dön.',
 ];
@@ -33,7 +33,7 @@ export function LinkGuide() {
       <View style={[styles.tip, { borderTopColor: colors.border }]}>
         <Icon name="share-outline" size={16} color={colors.textSecondary} style={styles.tipIcon} />
         <Text variant="subhead" color="textSecondary" style={styles.flex}>
-          Daha kısası: Instagram’da Paylaş menüsünden “Tarif Defteri”ni seçersen link kendiliğinden gelir.
+          Daha kısası: Instagram’da ya da YouTube’da Paylaş menüsünden “Tarif Defteri”ni seçersen link kendiliğinden gelir.
         </Text>
       </View>
     </Card>

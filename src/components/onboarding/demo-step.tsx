@@ -110,7 +110,7 @@ export function DemoStep({ onNext }: { onNext: () => void }) {
                 Önce sihri kendin gör
               </Text>
               <Text variant="body" color="textSecondary">
-                Instagram’dan bir yemek videosu seç. Malzemeleri ve adımlarıyla tarife dönüşmesini izle.
+                Instagram’dan ya da YouTube’dan bir yemek videosu seç. Malzemeleri ve adımlarıyla tarife dönüşmesini izle.
               </Text>
             </View>
             {samples.isPending ? (

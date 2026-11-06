@@ -11,13 +11,16 @@ import { Text } from '@/components/ui/text';
 import { useTheme } from '@/hooks/use-theme';
 import { useCreator } from '@/lib/queries';
 
-/** One Instagram account: who it is, how many recipes, and all of its recipes. */
+/** One Instagram account or YouTube channel: who it is, how many recipes, and all of its recipes. */
 export default function CreatorScreen() {
   const { username: raw } = useLocalSearchParams<{ username: string }>();
   const username = decodeURIComponent(raw ?? '');
   const { colors } = useTheme();
   const creator = useCreator(username).data;
   const name = creator?.full_name || username;
+  const youtube = creator?.source === 'youtube';
+  const place = youtube ? 'YouTube' : 'Instagram';
+  const profileUrl = creator?.profile_url || `https://www.instagram.com/${encodeURIComponent(username)}/`;
   const facts = [`@${username}`, creator ? `${creator.recipe_count} tarif` : null].filter(Boolean).join(' · ');
 
   const header = (
@@ -38,12 +41,12 @@ export default function CreatorScreen() {
         </View>
       </View>
       <Button
-        title="Instagram’da aç"
-        icon="logo-instagram"
+        title={`${place}’da aç`}
+        icon={youtube ? 'logo-youtube' : 'logo-instagram'}
         variant="outline"
         size="md"
-        accessibilityHint="Hesabın Instagram sayfasını açar"
-        onPress={() => Linking.openURL(`https://www.instagram.com/${encodeURIComponent(username)}/`)}
+        accessibilityHint={`Hesabın ${place} sayfasını açar`}
+        onPress={() => Linking.openURL(profileUrl)}
         style={styles.button}
       />
     </View>

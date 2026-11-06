@@ -59,7 +59,7 @@ export default function SearchScreen() {
       : {
           icon: 'book-outline' as const,
           title: 'Henüz tarif yok',
-          message: 'Instagram’da beğendiğin bir yemek videosunu ekle, tarifi burada bulursun.',
+          message: 'Instagram’da ya da YouTube’da beğendiğin bir yemek videosunu ekle, tarifi burada bulursun.',
           action: <Button title="Videodan tarif ekle" onPress={() => router.push('/add')} />,
         };
 

@@ -37,13 +37,13 @@ export default function CreatorsScreen() {
     );
   } else {
     empty = (
-      <EmptyState icon="people-outline" title="Henüz hesap yok" message="Instagram’dan tarif ekledikçe hesaplar burada listelenir.">
+      <EmptyState icon="people-outline" title="Henüz hesap yok" message="Instagram’dan ya da YouTube’dan tarif ekledikçe hesaplar burada listelenir.">
         <Button title="Videodan tarif ekle" onPress={() => router.push('/add')} />
       </EmptyState>
     );
   }
 
-  const subtitle = items.length > 0 && !q ? `Tariflerin geldiği ${items.length} Instagram hesabı` : 'Tariflerin geldiği Instagram hesapları';
+  const subtitle = items.length > 0 && !q ? `Tariflerin geldiği ${items.length} hesap` : 'Tariflerin geldiği hesaplar';
 
   return (
     <SheetLayout

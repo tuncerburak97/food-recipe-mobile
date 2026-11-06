@@ -266,6 +266,9 @@ export interface Creator {
   recipe_count: number;
   /** Thumbnails of up to 3 of their newest recipes. */
   covers: string[];
+  /** Where the account is (older servers send neither). */
+  source?: 'instagram' | 'youtube';
+  profile_url?: string;
 }
 
 export interface CategoryCount {

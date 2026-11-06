@@ -100,7 +100,7 @@ export default function HomeScreen() {
           ) : recent.isError ? (
             <ErrorState {...describeError(recent.error)} onRetry={() => recent.refetch()} />
           ) : featured.length === 0 ? (
-            <EmptyState icon="book-outline" title="Henüz tarif yok" message="Instagram’da beğendiğin bir yemek videosunu ekleyerek başla.">
+            <EmptyState icon="book-outline" title="Henüz tarif yok" message="Instagram’da ya da YouTube’da beğendiğin bir yemek videosunu ekleyerek başla.">
               <Button title="Videodan tarif ekle" icon="logo-instagram" onPress={() => router.push('/add')} />
             </EmptyState>
           ) : (
@@ -148,7 +148,7 @@ export default function HomeScreen() {
             <View style={styles.section}>
               <SectionHeader
                 title="Hesaplar"
-                subtitle="Tariflerin geldiği Instagram hesapları"
+                subtitle="Tariflerin geldiği hesaplar"
                 action={{ label: 'Tümü', onPress: () => router.push('/creators') }}
               />
               <CreatorRail creators={topCreators} />

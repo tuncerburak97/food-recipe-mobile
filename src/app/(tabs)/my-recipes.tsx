@@ -39,7 +39,7 @@ export default function MyRecipesScreen() {
       : {
           icon: 'bookmark-outline' as const,
           title: 'Kaydettiğin tarif yok',
-          message: 'Instagram’da beğendiğin bir yemek videosunu ekle, tarifi burada dursun.',
+          message: 'Instagram’da ya da YouTube’da beğendiğin bir yemek videosunu ekle, tarifi burada dursun.',
           action: <Button title="Videodan tarif ekle" onPress={() => router.push('/add')} />,
         };
 

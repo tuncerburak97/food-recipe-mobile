@@ -38,7 +38,7 @@ export default function CreateScreen() {
           onPress={() => router.replace('/voice-recipe')}
         />
         <Text variant="footnote" color="textTertiary" style={styles.tip}>
-          İpucu: Instagram’da bir videoyu Paylaş menüsünden “Tarif Defteri”ne gönderirsen link kendiliğinden gelir.
+          İpucu: Instagram’da ya da YouTube’da bir videoyu Paylaş menüsünden “Tarif Defteri”ne gönderirsen link kendiliğinden gelir.
         </Text>
       </View>
     </View>

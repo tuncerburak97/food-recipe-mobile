@@ -41,7 +41,7 @@ export function HeroStep({ onStart }: { onStart: () => void }) {
             Videodaki yemek, saniyeler içinde senin tarifin
           </Text>
           <Text variant="body" color="textSecondary">
-            Instagram’da gördüğün tarifleri kaydet, AI Şef’le kendine uyarla, adım adım pişir.
+            Instagram’da ve YouTube’da gördüğün tarifleri kaydet, AI Şef’le kendine uyarla, adım adım pişir.
           </Text>
         </Animated.View>
         <View style={styles.points}>

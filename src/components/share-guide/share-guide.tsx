@@ -47,7 +47,7 @@ export type ShareGuideContext = 'home' | 'shared' | 'settings';
 const INTRO: Record<ShareGuideContext, { kicker: string; title: string; text: string }> = {
   home: {
     kicker: 'Bir kez kur, hep kullan',
-    title: 'Instagram’dan tek dokunuşla tarif',
+    title: 'Instagram’dan, YouTube’dan tek dokunuşla tarif',
     text: `${APP_NAME}’ni paylaşım menüsünde ilk sıraya al. Sonra her yemek videosunda Paylaş’a dokunman yeter.`,
   },
   shared: {
@@ -56,7 +56,7 @@ const INTRO: Record<ShareGuideContext, { kicker: string; title: string; text: st
     text: `${APP_NAME}’ni paylaşım menüsünde ilk sıraya al; bir sonraki videoda tek dokunuşla buradasın.`,
   },
   settings: {
-    kicker: 'Instagram paylaşımı',
+    kicker: 'Paylaşım menüsü',
     title: `${APP_NAME}’ni öne al`,
     text: 'Üç adımda paylaşım menüsünde ilk sıraya alırsın.',
   },

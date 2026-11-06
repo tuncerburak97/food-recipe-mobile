@@ -359,18 +359,20 @@ export function describeError(err: unknown): { title: string; message: string } 
     case 'TIMEOUT':
       return { title: 'Zaman aşımı', message: 'İşlem beklenenden uzun sürdü. Tekrar dener misin?' };
     case 'INVALID_INPUT':
-      return { title: 'Geçersiz link', message: 'Bu bir Instagram Reels linki gibi görünmüyor.' };
+      return { title: 'Geçersiz link', message: 'Bu bir Instagram ya da YouTube video linki gibi görünmüyor.' };
     case 'REEL_NOT_FOUND':
-      return { title: 'Reels bulunamadı', message: 'Paylaşım silinmiş ya da gizli bir hesaba ait olabilir.' };
+      return { title: 'Video bulunamadı', message: 'Paylaşım silinmiş ya da gizli bir hesaba ait olabilir.' };
     case 'NOT_A_VIDEO':
-      return { title: 'Video değil', message: 'Bu paylaşım bir Reels değil. Bir Reels linki dene.' };
+      return { title: 'Video değil', message: 'Bu paylaşım bir video değil. Bir video linki dene.' };
     case 'INSTAGRAM_RATE_LIMITED':
     case 'RECIPE_AGENT_RATE_LIMITED':
       return { title: 'Biraz yavaşlayalım', message: 'Çok fazla istek gönderildi. Birkaç dakika sonra tekrar dene.' };
+    case 'YOUTUBE_NOT_CONFIGURED':
+      return { title: 'YouTube şu an kapalı', message: 'YouTube videoları şu an eklenemiyor. Birazdan tekrar dener misin?' };
     case 'INSTAGRAM_LOGIN_REQUIRED':
       return { title: 'Instagram bağlantısı yok', message: 'Sunucunun Instagram oturumu yenilenmeli.' };
     case 'NO_RECIPE_TEXT':
-      return { title: 'Açıklama boş', message: 'Bu Reels’in açıklamasında tarif bulunamadı.' };
+      return { title: 'Açıklama boş', message: 'Bu videonun açıklamasında tarif bulunamadı.' };
     case 'NOT_A_RECIPE':
       return { title: 'Bu paylaşımda tarif yok', message: 'AI açıklamada malzeme ya da yapılış bulamadı.' };
     case 'CANNOT_COOK':

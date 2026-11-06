@@ -29,7 +29,7 @@ const PAGES = [
     Art: PantryArt,
   },
   {
-    kicker: 'Instagram’dan tarife',
+    kicker: 'Videodan tarife',
     title: 'Videoyu tarife çevir',
     text: 'Beğendiğin yemek videosunun linkini kopyala, alttaki “Ekle” düğmesine bas ve yapıştır. Malzemeler ve adımlar düzenli bir tarife dönüşür.',
     Art: VideoArt,

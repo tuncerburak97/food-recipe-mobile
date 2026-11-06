@@ -25,7 +25,7 @@ export function ReelHero() {
         scaleTo={0.985}
         onPress={() => guide.offer(() => router.push('/add'))}
         accessibilityRole="button"
-        accessibilityLabel="Videodan tarife. Instagram Reels linkini yapıştır, tarif çıkarılsın."
+        accessibilityLabel="Videodan tarife. Instagram ya da YouTube video linkini yapıştır, tarif çıkarılsın."
         style={styles.main}>
         <View style={[styles.badge, { backgroundColor: colors.ink }]}>
           <Icon name="logo-instagram" size={19} color={colors.onInk} />

@@ -98,7 +98,7 @@ export default function SettingsScreen() {
           <ListRow first icon="map-outline" title="Uygulamayı tanı" subtitle="Özelliklerin kısa tanıtımı" onPress={() => router.push('/tour')} />
           <ListRow
             icon="logo-instagram"
-            title="Instagram paylaşımını kur"
+            title="Paylaşım menüsünü kur"
             subtitle="Paylaş menüsünde Tarif Defteri ilk sırada olsun"
             onPress={() => setGuide(true)}
           />
