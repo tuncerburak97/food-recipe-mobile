@@ -22,7 +22,7 @@ import { TextField } from '@/components/ui/text-field';
 import { ScreenPadding } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { api, describeError } from '@/lib/api';
-import { extractInstagramLink } from '@/lib/instagram';
+import { extractVideoLink } from '@/lib/instagram';
 import { takePendingShare } from '@/store/pending-share';
 import { useSaveRecipe } from '@/lib/queries';
 import type { RecipeOutput, Reel } from '@/lib/types';
@@ -33,7 +33,7 @@ const PHASES: Phase[] = ['link', 'reel', 'recipe'];
 const STEP_LABELS = ['Link', 'Video', 'Tarif'];
 
 /**
- * Add a recipe from an Instagram video in three steps:
+ * Add a recipe from an Instagram or YouTube video in three steps:
  *   1. link   – paste the link (or arrive with ?url= from the share sheet / a deep link)
  *   2. reel   – API 1 (POST /reels/fetch) shows the video that was found
  *   3. recipe – API 2 (POST /reels/fetch-recipe) turns its description into a recipe, then save
@@ -59,7 +59,7 @@ function AddRecipeFlow({ initialUrl: sharedUrl, pasteOnOpen, fromShare }: { init
     return () => clearTimeout(t);
   }, [fromShare, offer]);
 
-  const initialLink = sharedUrl ? extractInstagramLink(sharedUrl) : null;
+  const initialLink = sharedUrl ? extractVideoLink(sharedUrl) : null;
   const [phase, setPhase] = useState<Phase>(initialLink ? 'reel' : 'link');
   const [input, setInput] = useState(sharedUrl ?? '');
   // The typed link is checked once the user leaves the field or submits it, not on every letter.
@@ -72,7 +72,7 @@ function AddRecipeFlow({ initialUrl: sharedUrl, pasteOnOpen, fromShare }: { init
   const [pasteHint, setPasteHint] = useState(false);
   const started = useRef(false);
 
-  const link = extractInstagramLink(input);
+  const link = extractVideoLink(input);
 
   const loadReel = (u: string) => {
     setPhase('reel');
@@ -120,7 +120,7 @@ function AddRecipeFlow({ initialUrl: sharedUrl, pasteOnOpen, fromShare }: { init
 
   const paste = async () => {
     const text = await Clipboard.getStringAsync();
-    const found = extractInstagramLink(text);
+    const found = extractVideoLink(text);
     if (found) {
       setInput(found);
       setPasteHint(false);
@@ -163,7 +163,7 @@ function AddRecipeFlow({ initialUrl: sharedUrl, pasteOnOpen, fromShare }: { init
   const stepIndex = PHASES.indexOf(phase);
   const stepDone = (phase === 'reel' && reelStatus === 'ready') || (phase === 'recipe' && recipeStatus === 'ready');
   const err = describeError(error);
-  const fieldError = checked && input.trim().length > 0 && !link ? 'Bu bir Instagram video linki değil. Örnek: instagram.com/reel/…' : null;
+  const fieldError = checked && input.trim().length > 0 && !link ? 'Bu bir Instagram ya da YouTube video linki değil. Örnek: instagram.com/reel/…' : null;
 
   let body: React.ReactNode;
   let footer: React.ReactNode = null;
@@ -176,7 +176,7 @@ function AddRecipeFlow({ initialUrl: sharedUrl, pasteOnOpen, fromShare }: { init
             Videonun linkini ekle
           </Text>
           <Text variant="callout" color="textSecondary">
-            Instagram’da beğendiğin yemek videosunun linkini kopyala, sonra aşağıdaki butona dokun.
+            Instagram’da ya da YouTube’da beğendiğin yemek videosunun linkini kopyala, sonra aşağıdaki butona dokun.
           </Text>
         </View>
 
@@ -186,7 +186,7 @@ function AddRecipeFlow({ initialUrl: sharedUrl, pasteOnOpen, fromShare }: { init
             <View style={styles.pasteHint} accessibilityLiveRegion="polite">
               <Icon name="alert-circle-outline" size={16} color={colors.danger} style={styles.hintIcon} />
               <Text variant="subhead" color="danger" style={styles.flex}>
-                Kopyaladığın şey bir Instagram linki değil. Önce videonun linkini kopyala.
+                Kopyaladığın şey bir Instagram ya da YouTube linki değil. Önce videonun linkini kopyala.
               </Text>
             </View>
           ) : null}

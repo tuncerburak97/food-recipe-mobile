@@ -34,6 +34,7 @@ import { Text } from '@/components/ui/text';
 import { categoryLabel } from '@/constants/categories';
 import { Radius, ScreenPadding } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { sourceName } from '@/lib/instagram';
 import { describeError } from '@/lib/api';
 import { ingredientCount, upperTr } from '@/lib/format';
 import { useDeleteRecipe, useMe, useRecipe, useResetCustomRecipe, useSaveRecipe } from '@/lib/queries';
@@ -132,7 +133,7 @@ export default function RecipeScreen() {
     const actions: { label: string; run: () => void; destructive?: boolean }[] = [
       { label: 'Paylaş', run: () => Share.share({ message: source ? `${recipe.title}\n${source.url}` : recipe.title }) },
     ];
-    if (source) actions.push({ label: 'Videoyu Instagram’da aç', run: () => Linking.openURL(source.url) });
+    if (source) actions.push({ label: `Videoyu ${sourceName(source.shortcode)}’da aç`, run: () => Linking.openURL(source.url) });
     if (mine && entry.customized) actions.push({ label: 'Orijinal tarife dön', run: resetToOriginal });
     if (mine) actions.push({ label: 'Tariflerimden çıkar', run: confirmRemove, destructive: true });
 

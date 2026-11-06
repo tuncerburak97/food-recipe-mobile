@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { useTheme } from '@/hooks/use-theme';
 import { describeError } from '@/lib/api';
-import { extractInstagramLink } from '@/lib/instagram';
+import { extractVideoLink, isYouTube, sourceName } from '@/lib/instagram';
 import { registerPush } from '@/lib/push';
 import { useImportRecipe } from '@/lib/queries';
 import { takePendingShare } from '@/store/pending-share';
@@ -15,13 +15,14 @@ import { takePendingShare } from '@/store/pending-share';
 /** How long "Alındı" stays on screen before the app goes back to Instagram (ms). */
 const BACK_AFTER_MS = 1200;
 
-function backToInstagram() {
-  Linking.openURL('instagram://app').catch(() => {});
+/** Back to the app the video was shared from. */
+function backToSource(link: string | null) {
+  Linking.openURL(isYouTube(link ?? undefined) ? 'youtube://' : 'instagram://app').catch(() => {});
 }
 
 /**
- * A reel shared from Instagram: the request is handed to the server at once, and the app goes
- * back to Instagram so the user keeps scrolling. The recipe is saved in the background and a
+ * A video shared from Instagram or YouTube: the request is handed to the server at once, and the app
+ * goes back there so the user keeps scrolling. The recipe is saved in the background and a
  * notification says when it is in the book (the inbox shows it too). Links that are not reels go
  * to the full "Tarif ekle" flow.
  */
@@ -34,7 +35,8 @@ export default function ImportScreen() {
   const [error, setError] = useState<unknown>(null);
   const stay = useRef(false);
   const started = useRef(false);
-  const link = url ? extractInstagramLink(url) : null;
+  const link = url ? extractVideoLink(url) : null;
+  const source = sourceName(link ?? undefined);
 
   const send = () => {
     if (!link) return;
@@ -49,7 +51,7 @@ export default function ImportScreen() {
           if (stay.current) return;
           // Leaves the inbox behind, so coming back shows how it is going.
           router.replace('/inbox');
-          backToInstagram();
+          backToSource(link);
         }, BACK_AFTER_MS);
       },
       onError: (e) => {
@@ -79,7 +81,7 @@ export default function ImportScreen() {
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
       {phase === 'sending' ? (
-        <EmptyState icon="logo-instagram" tone="accent" title="Tarif alınıyor" message="Bir saniye…">
+        <EmptyState icon={source === 'YouTube' ? 'logo-youtube' : 'logo-instagram'} tone="accent" title="Tarif alınıyor" message="Bir saniye…">
           <ActivityIndicator color={colors.accent} />
         </EmptyState>
       ) : phase === 'accepted' ? (
@@ -89,17 +91,17 @@ export default function ImportScreen() {
           title="Alındı, tarif defterine ekleniyor"
           message={
             pushOn
-              ? 'Instagram’a dönebilirsin. Hazır olunca bildirim göndereceğiz.'
-              : 'Instagram’a dönebilirsin. Hazır olunca Gelenler’de göreceksin.'
+              ? `${source}’a dönebilirsin. Hazır olunca bildirim göndereceğiz.`
+              : `${source}’a dönebilirsin. Hazır olunca Gelenler’de göreceksin.`
           }>
           <View style={styles.actions}>
             <Button
-              title="Instagram’a dön"
-              icon="logo-instagram"
+              title={`${source}’a dön`}
+              icon={source === 'YouTube' ? 'logo-youtube' : 'logo-instagram'}
               onPress={() => {
                 stay.current = true;
                 router.replace('/inbox');
-                backToInstagram();
+                backToSource(link);
               }}
             />
             <Button title="Burada bekle" variant="ghost" onPress={wait} />

@@ -7,6 +7,7 @@ import { Linking, Platform, Pressable, StyleSheet, View, type GestureResponderEv
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { videoSource } from '@/lib/api';
+import { isYouTube } from '@/lib/instagram';
 import type { StepClip } from '@/lib/step-clip';
 
 // Builds made before expo-video was added do not have its native module; importing it there would
@@ -17,7 +18,7 @@ interface Props {
   /** Reel shortcode; without it only the photo is shown. */
   shortcode?: string;
   imageUrl?: string;
-  /** Instagram link, used when the video cannot be played inside the app. */
+  /** The video's Instagram or YouTube link, opened when it cannot be played inside the app. */
   instagramUrl?: string;
   /** Height covered at the bottom (e.g. by a sheet rising over it): the play button and the player stay above it. */
   bottomInset?: number;
@@ -33,10 +34,13 @@ interface Props {
  */
 export function VideoHero({ shortcode, imageUrl, instagramUrl, bottomInset = 0, clip, style }: Props) {
   const [started, setStarted] = useState(false);
-  const watchStep = canPlayInApp && clip != null;
+  // YouTube videos have no file the app may play: the button opens YouTube.
+  const youtube = isYouTube(shortcode);
+  const inApp = canPlayInApp && !youtube;
+  const watchStep = inApp && clip != null;
 
   const play = () => {
-    if (canPlayInApp) setStarted(true);
+    if (inApp) setStarted(true);
     else if (instagramUrl) Linking.openURL(instagramUrl);
   };
 
@@ -49,7 +53,7 @@ export function VideoHero({ shortcode, imageUrl, instagramUrl, bottomInset = 0, 
       ) : (
         <>
           {imageUrl ? <Image source={imageUrl} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} /> : null}
-          {shortcode && (canPlayInApp || instagramUrl) && (
+          {shortcode && (inApp || instagramUrl) && (
             <Pressable
               onPress={play}
               accessibilityRole="button"
@@ -60,7 +64,7 @@ export function VideoHero({ shortcode, imageUrl, instagramUrl, bottomInset = 0, 
                   <Icon name="play" size={18} color="#1E1C1A" style={styles.playIcon} />
                 </View>
                 <Text variant="subhead" weight="700" tint="#FFFFFF" style={styles.playLabel}>
-                  {!canPlayInApp ? 'Instagram’da izle' : watchStep ? 'Bu adımı izle' : 'Videoyu izle'}
+                  {youtube ? 'YouTube’da izle' : !inApp ? 'Instagram’da izle' : watchStep ? 'Bu adımı izle' : 'Videoyu izle'}
                 </Text>
               </View>
             </Pressable>

@@ -175,7 +175,7 @@ export function openScreen(a: Pick<AgentAction, 'screen' | 'id'>) {
 }
 
 /** An Instagram post link in the message: the add screen takes it from here, no model call needed. */
-const REEL_URL = /https?:\/\/(?:www\.)?instagram\.com\/(?:reels?|p|tv)\/[\w-]+[^\s]*/i;
+const REEL_URL = /https?:\/\/(?:(?:www|m)\.)?(?:instagram\.com\/(?:reels?|p|tv)\/[\w-]+|youtube\.com\/(?:shorts\/|watch\?\S*?v=)[\w-]{11}|youtu\.be\/[\w-]{11})[^\s]*/i;
 
 /** The assistant chat: the turns, and send / stop / retry / clear. */
 export function useAgentChat() {

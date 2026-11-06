@@ -26,7 +26,7 @@ export default function CreateScreen() {
         <ChoiceCard
           role="button"
           icon="logo-instagram"
-          title="Instagram videosundan ekle"
+          title="Instagram ya da YouTube videosundan ekle"
           description="Yemek videosunun linkini yapıştır; malzemeler ve adımlar düzenli bir tarife dönüşsün."
           onPress={() => router.replace('/add')}
         />

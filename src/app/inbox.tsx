@@ -12,6 +12,7 @@ import { SheetLayout } from '@/components/ui/layout';
 import { Text } from '@/components/ui/text';
 import { ScreenPadding } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { sourceName } from '@/lib/instagram';
 import { describeError } from '@/lib/api';
 import { relativeTime } from '@/lib/format';
 import { useGenerations, useImportRecipe, useMarkGenerationsSeen, useStartGeneration } from '@/lib/queries';
@@ -126,7 +127,7 @@ function JobRow({ job }: { job: GenerationJob }) {
   const start = useStartGeneration();
   const importRecipe = useImportRecipe();
   const reel = isReelImport(job.request);
-  const ingredients = reel ? 'Instagram’dan' : jobIngredients(job).join(', ');
+  const ingredients = isReelImport(job.request) ? `${sourceName(job.request.url)}’dan` : jobIngredients(job).join(', ');
   const time = relativeTime(jobTime(job));
   const done = job.status === 'done';
   const failed = job.status === 'failed';
