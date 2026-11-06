@@ -122,10 +122,10 @@ function Intro({ onPick, onAsk, disabled, compact }: { onPick: (kind: GuideKind)
   return (
     <View style={styles.intro}>
       <View style={styles.introHead}>
-        <ChefAvatar size={48} ring />
+        <ChefAvatar size={36} ring />
         <View style={styles.flex}>
-          <Text variant="title2">Ne pişirelim?</Text>
-          <Text variant="subhead" color="textSecondary">
+          <Text variant="title3">Ne pişirelim?</Text>
+          <Text variant="footnote" color="textSecondary">
             Bir iş seç ya da aşağıya yaz, söyle.
           </Text>
         </View>
@@ -135,7 +135,7 @@ function Intro({ onPick, onAsk, disabled, compact }: { onPick: (kind: GuideKind)
         ŞÖYLE DE SORABİLİRSİN
       </Text>
       <View style={styles.starters}>
-        {examples.map((e) => (
+        {examples.slice(0, 6).map((e) => (
           <Chip key={e.text} label={e.text} icon={e.icon} kind="button" tone="sunken" size="sm" onPress={() => onAsk(e.text)} disabled={disabled} />
         ))}
       </View>
@@ -302,10 +302,10 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   header: { borderBottomWidth: StyleSheet.hairlineWidth },
   body: { paddingHorizontal: ScreenPadding, paddingTop: 16, paddingBottom: 24, gap: 18 },
-  intro: { gap: 14 },
-  introHead: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 2 },
+  intro: { gap: 12 },
+  introHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   composerRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
-  starters: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  starters: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   userRow: { flexDirection: 'row', justifyContent: 'flex-end', paddingLeft: 56 },
   userBubble: { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: Radius.lg, borderBottomRightRadius: 6, paddingHorizontal: 14, paddingVertical: 10, flexShrink: 1 },
   voiceMark: { opacity: 0.7 },
