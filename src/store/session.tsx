@@ -1,9 +1,22 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { createContext, use, useCallback, useEffect, useState, type ReactNode } from 'react';
 
+import { resetAnalytics, track } from '@/lib/analytics';
 import { api, setAuthToken, setDeviceId } from '@/lib/api';
 import type { CookProfile } from '@/lib/profile';
+import { claimPurchases } from '@/lib/purchases';
+import { forgetGoogle, type ProviderToken } from '@/lib/social-auth';
 import { deviceIdStorage, onboardedStorage, tokenStorage } from '@/lib/token-storage';
+import type { AppUser } from '@/lib/types';
+
+/** What a sign-in did. */
+export interface SignInResult {
+  user: AppUser;
+  /** The device moved to an account that existed already (instead of the guest becoming one). */
+  switched: boolean;
+  /** What the guest saved on this device was moved into that account. */
+  merged: boolean;
+}
 
 /**
  * loading: reading the Keychain / registering the device. error: first launch could not reach the
@@ -19,8 +32,16 @@ interface SessionValue {
   retry: () => void;
   /** Saves the onboarding answers and opens the app. */
   completeOnboarding: (name: string, profile: CookProfile) => Promise<void>;
-  /** Forgets this install's account and starts again with a new guest account. */
+  /**
+   * Signs in with a token from Apple or Google (lib/social-auth). The guest account of this device
+   * becomes a member, or, when the identity already has an account, the device moves to it and
+   * what the guest saved here comes along.
+   */
+  signIn: (token: ProviderToken) => Promise<SignInResult>;
+  /** Leaves the account on this device (or drops the guest account) and starts a new guest account. */
   signOut: () => Promise<void>;
+  /** Deletes the account and everything in it, then starts a new guest account. */
+  deleteAccount: () => Promise<void>;
 }
 
 const SessionContext = createContext<SessionValue | null>(null);
@@ -81,6 +102,16 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setAttempt((a) => a + 1);
   }, []);
 
+  /** Forgets everything about the account on this device and registers a new guest. */
+  const reset = async () => {
+    await Promise.all([tokenStorage.clear(), deviceIdStorage.clear(), onboardedStorage.clear()]);
+    setAuthToken(null);
+    setDeviceId(null);
+    queryClient.clear();
+    resetAnalytics();
+    retry();
+  };
+
   const value: SessionValue = {
     status,
     deviceId,
@@ -89,14 +120,41 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       const user = await api.saveProfile(name.trim() || undefined, profile, true);
       await onboardedStorage.set('1');
       queryClient.setQueryData(['me'], user);
+      track('onboarding_completed', { skill: profile.skill ?? null, household: profile.household ?? null, persona: profile.persona ?? null });
       setStatus('ready');
     },
+    async signIn(t) {
+      const res = await api.signIn(t.provider, t.identityToken, t.name);
+      if (res.token) {
+        // Another account: its token replaces the guest's, and nothing cached is ours any more.
+        await tokenStorage.set(res.token);
+        setAuthToken(res.token);
+        queryClient.clear();
+        if (res.user.onboarded) await onboardedStorage.set('1');
+        else await onboardedStorage.clear();
+      }
+      queryClient.setQueryData(['me'], res.user);
+      queryClient.invalidateQueries();
+      track('signed_in', { provider: t.provider, merged: res.merged, new_member: res.created });
+      if (res.token) {
+        // A subscription bought on this phone as a guest follows the person into the account.
+        claimPurchases();
+        setStatus(res.user.onboarded ? 'ready' : 'onboarding');
+      }
+      return { user: res.user, switched: !!res.token, merged: res.merged };
+    },
     async signOut() {
-      await Promise.all([tokenStorage.clear(), deviceIdStorage.clear(), onboardedStorage.clear()]);
-      setAuthToken(null);
-      setDeviceId(null);
-      queryClient.clear();
-      retry();
+      // Ends the server session of a member; a guest has none. Never blocks leaving.
+      await api.signOut().catch(() => {});
+      await forgetGoogle();
+      track('signed_out');
+      await reset();
+    },
+    async deleteAccount() {
+      await api.deleteAccount();
+      await forgetGoogle();
+      track('account_deleted');
+      await reset();
     },
   };
 

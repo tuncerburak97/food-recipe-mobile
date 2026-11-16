@@ -15,6 +15,7 @@ import { TellerStep } from '@/components/voice/teller-step';
 import { useVoiceRecorder } from '@/components/voice/use-voice-recorder';
 import { VoiceCard } from '@/components/voice/voice-card';
 import type { Stage, StageState } from '@/components/voice/voice-stages';
+import { useLimitGate } from '@/lib/access';
 import { ApiError } from '@/lib/api';
 import {
   MIN_RECORDING_SEC,
@@ -48,6 +49,8 @@ function leave() {
  */
 export default function VoiceRecipeScreen() {
   const client = useQueryClient();
+  // A recording takes minutes: say so first when today's voice recipe is already used.
+  useLimitGate('voice_recipe');
   const rec = useVoiceRecorder();
   const [step, setStep] = useState<Step>('teller');
   const [forward, setForward] = useState(true);

@@ -1,5 +1,4 @@
 import * as Haptics from 'expo-haptics';
-import { Image } from 'expo-image';
 import { useKeepAwake } from 'expo-keep-awake';
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -15,6 +14,7 @@ import { StepRail } from '@/components/cook/step-rail';
 import { StepTimer } from '@/components/cook/step-timer';
 import { TimerTray } from '@/components/cook/timer-tray';
 import { DishPlaceholder } from '@/components/recipe/ai-hero';
+import { RecipeImage } from '@/components/recipe/recipe-image';
 import { IngredientChecklist } from '@/components/recipe/ingredient-checklist';
 import { VideoHero } from '@/components/recipe/video-hero';
 import { Button } from '@/components/ui/button';
@@ -191,7 +191,7 @@ export default function CookScreen() {
               style={StyleSheet.absoluteFill}
             />
           ) : entry.imageUrl ? (
-            <Image source={entry.imageUrl} style={StyleSheet.absoluteFill} contentFit="cover" />
+            <RecipeImage uri={entry.imageUrl} style={StyleSheet.absoluteFill} placeholderSize={64} />
           ) : (
             // Centered in the visible part: below the status bar, above the sheet.
             <View style={[styles.placeholder, { top: insets.top }]}>

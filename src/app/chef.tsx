@@ -11,7 +11,8 @@ import { Stepper } from '@/components/ui/stepper';
 import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
 import { WizardLayout } from '@/components/ui/wizard-layout';
-import { describeError } from '@/lib/api';
+import { useLimitGate } from '@/lib/access';
+import { describeError, isLimitError } from '@/lib/api';
 import {
   CALORIE_LIMITS,
   EFFORTS,
@@ -49,6 +50,8 @@ const HEADINGS: Record<Step, { title: string; subtitle: string }> = {
  */
 export default function ChefScreen() {
   const me = useMe().data;
+  // The questions take a minute: say so first when today's AI recipe is already used.
+  useLimitGate('ai_recipe');
   // Remount when the profile arrives so the defaults come from it.
   return <ChefFlow key={me?.profile ? 'profile' : 'none'} profile={me?.profile} />;
 }
@@ -108,6 +111,7 @@ function ChefFlow({ profile }: { profile?: CookProfile }) {
         close();
       },
       onError: (e) => {
+        if (isLimitError(e)) return; // the paywall is already opening
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         showToast({ title: describeError(e).title, message: describeError(e).message });
       },

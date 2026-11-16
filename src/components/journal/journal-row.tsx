@@ -2,7 +2,7 @@ import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { DishPlaceholder } from '@/components/recipe/ai-hero';
+import { RecipeImage } from '@/components/recipe/recipe-image';
 import { RECIPE_ROW_PHOTO } from '@/components/recipe/recipe-list-card';
 import { IconButton } from '@/components/ui/icon-button';
 import { Text } from '@/components/ui/text';
@@ -35,10 +35,8 @@ export function JournalRow({ log, onMenu, showTitle = true }: { log: CookLog; on
         <View style={[styles.photo, { backgroundColor: colors.peach }]}>
           {log.photoUrl ? (
             <Image source={photoSource(log.photoUrl)} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} />
-          ) : log.recipeImageUrl ? (
-            <Image source={log.recipeImageUrl} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} />
           ) : (
-            <DishPlaceholder category={log.category} size={30} />
+            <RecipeImage uri={log.recipeImageUrl} style={StyleSheet.absoluteFill} placeholderSize={30} />
           )}
         </View>
         <View style={styles.texts}>

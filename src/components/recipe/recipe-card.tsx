@@ -1,8 +1,7 @@
-import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
-import { DishPlaceholder } from '@/components/recipe/ai-hero';
+import { RecipeImage } from '@/components/recipe/recipe-image';
 import { CreatorLine } from '@/components/recipe/creator-line';
 import { PressableScale } from '@/components/ui/pressable-scale';
 import { Tag } from '@/components/ui/tag';
@@ -36,11 +35,7 @@ export function RecipeCard({ entry, width }: Props) {
       accessibilityLabel={[recipe.title, minutes != null ? formatMinutes(minutes) : null, badge?.label].filter(Boolean).join(', ')}
       style={{ width }}>
       <View style={[styles.photo, { backgroundColor: colors.peach }]}>
-        {entry.imageUrl ? (
-          <Image source={entry.imageUrl} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} />
-        ) : (
-          <DishPlaceholder size={52} />
-        )}
+        <RecipeImage uri={entry.imageUrl} style={StyleSheet.absoluteFill} placeholderSize={52} transition={200} recyclingKey={entry.id} />
         {badge ? <Tag label={badge.label} tone={badge.tone} style={styles.badge} /> : null}
         {minutes != null && <Tag label={formatMinutes(minutes)} icon="time-outline" tone="overlay" style={styles.time} />}
       </View>

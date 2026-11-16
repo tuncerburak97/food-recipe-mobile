@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
-import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
@@ -17,6 +16,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { RecipeImage } from '@/components/recipe/recipe-image';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { StickyFooter } from '@/components/ui/layout';
@@ -200,7 +200,7 @@ function ReelCard({ entry, index, selected, onPress }: { entry: RecipeEntry; ind
         accessibilityState={{ selected, checked: selected }}
         accessibilityLabel={`${entry.recipe.title}, @${entry.source?.ownerUsername} videosu`}
         style={[styles.reel, { borderColor: selected ? colors.accent : 'transparent' }]}>
-        <Image source={entry.imageUrl} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} />
+        <RecipeImage uri={entry.imageUrl} style={StyleSheet.absoluteFill} placeholderSize={56} transition={200} />
         <LinearGradient colors={['rgba(0,0,0,0.05)', 'rgba(0,0,0,0.75)']} style={StyleSheet.absoluteFill} />
         <View style={styles.reelTop}>
           <View style={styles.igBadge}>
@@ -247,7 +247,7 @@ function Working({ entry, stage }: { entry: RecipeEntry; stage: number }) {
       <View style={{ width: cardWidth, height: cardHeight }}>
         <Animated.View style={[styles.glow, { backgroundColor: colors.accent, borderRadius: Radius.xl + 6 }, glowStyle]} />
         <View style={[styles.workingReel, { borderRadius: Radius.xl }]}>
-          <Image source={entry.imageUrl} style={StyleSheet.absoluteFill} contentFit="cover" />
+          <RecipeImage uri={entry.imageUrl} style={StyleSheet.absoluteFill} placeholderSize={72} />
           <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(10,12,16,0.25)' }]} />
           <Animated.View style={[styles.scan, scanStyle]}>
             <LinearGradient colors={['rgba(236,122,78,0)', 'rgba(236,122,78,0.55)', 'rgba(255,255,255,0.9)']} style={StyleSheet.absoluteFill} />
@@ -309,7 +309,7 @@ function Reveal({ entry, recipe, saved }: { entry: RecipeEntry; recipe: Recipe; 
   return (
     <View style={styles.block}>
       <Animated.View entering={FadeInDown.duration(320)} style={styles.from}>
-        <Image source={entry.imageUrl} style={styles.thumb} contentFit="cover" />
+        <RecipeImage uri={entry.imageUrl} style={styles.thumb} placeholderSize={22} />
         <View style={styles.flex}>
           <Text variant="overline" color="success">
             {upperTr('Tarif hazır')}

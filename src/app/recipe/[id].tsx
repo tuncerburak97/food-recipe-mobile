@@ -1,8 +1,8 @@
 import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
-import { ActionSheetIOS, ActivityIndicator, Alert, Linking, Platform, Pressable, Share, StyleSheet, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActionSheetIOS, ActivityIndicator, Alert, Linking, Platform, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { interpolate, useAnimatedReaction, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { scheduleOnRN } from 'react-native-worklets';
@@ -15,6 +15,7 @@ import { JournalNote } from '@/components/recipe/journal-note';
 import { KitchenBar } from '@/components/recipe/kitchen-bar';
 import { MetaLine } from '@/components/recipe/meta-pills';
 import { NotesCard } from '@/components/recipe/notes-card';
+import { RecipeLock } from '@/components/recipe/recipe-lock';
 import { ServingsStepper } from '@/components/recipe/servings-stepper';
 import { SourceCreator } from '@/components/recipe/source-creator';
 import { StepList } from '@/components/recipe/step-list';
@@ -34,8 +35,10 @@ import { Text } from '@/components/ui/text';
 import { categoryLabel } from '@/constants/categories';
 import { Radius, ScreenPadding } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { limitDetails, useRefreshAccess } from '@/lib/access';
 import { sourceName } from '@/lib/instagram';
-import { describeError } from '@/lib/api';
+import { describeError, isLimitError } from '@/lib/api';
+import { shareRecipe } from '@/lib/share';
 import { ingredientCount, upperTr } from '@/lib/format';
 import { useDeleteRecipe, useMe, useRecipe, useResetCustomRecipe, useSaveRecipe } from '@/lib/queries';
 
@@ -77,13 +80,32 @@ export default function RecipeScreen() {
     },
   );
 
+  // Opening a recipe may use one of today's free recipes: keep the count the app shows current.
+  const refreshAccess = useRefreshAccess();
+  const fetchedAt = query.dataUpdatedAt + query.errorUpdatedAt;
+  useEffect(() => {
+    if (fetchedAt > 0) refreshAccess();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchedAt]);
+
+  // Today's free recipes are used up: the recipe stays closed (its photo and name still show when
+  // the list already had them).
+  const locked = isLimitError(query.error);
   const entry = query.data;
   if (!entry) {
     const err = describeError(query.error);
     return (
       <View style={[styles.screen, { backgroundColor: colors.background }]}>
         <ScreenHeader />
-        {query.isPending ? <LoadingState label="Tarif yükleniyor" /> : <ErrorState title={err.title} message={err.message} onRetry={() => query.refetch()} />}
+        {query.isPending ? (
+          <LoadingState label="Tarif yükleniyor" />
+        ) : locked ? (
+          <View style={styles.lockOnly}>
+            <RecipeLock details={limitDetails(query.error)} />
+          </View>
+        ) : (
+          <ErrorState title={err.title} message={err.message} onRetry={() => query.refetch()} />
+        )}
       </View>
     );
   }
@@ -131,7 +153,7 @@ export default function RecipeScreen() {
   // Everything secondary lives in one "…" menu to keep the screen calm.
   const openMenu = () => {
     const actions: { label: string; run: () => void; destructive?: boolean }[] = [
-      { label: 'Paylaş', run: () => Share.share({ message: source ? `${recipe.title}\n${source.url}` : recipe.title }) },
+      { label: 'Paylaş', run: () => void shareRecipe(entry).catch((e) => Alert.alert(describeError(e).title, describeError(e).message)) },
     ];
     if (source) actions.push({ label: `Videoyu ${sourceName(source.shortcode)}’da aç`, run: () => Linking.openURL(source.url) });
     if (mine && entry.customized) actions.push({ label: 'Orijinal tarife dön', run: resetToOriginal });
@@ -197,81 +219,87 @@ export default function RecipeScreen() {
 
           <MetaLine recipe={recipe} />
 
-          <JournalNote entry={entry} />
+          {locked ? (
+            <RecipeLock details={limitDetails(query.error)} />
+          ) : (
+            <>
+              <JournalNote entry={entry} />
 
-          {entry.customized && (
-            <View style={[styles.custom, { backgroundColor: colors.surfaceMuted }]}>
-              <Icon name="color-wand-outline" size={18} color={colors.text} />
-              <Text variant="subhead" style={styles.flex}>
-                Sana göre uyarlandı{entry.customNote ? `: ${entry.customNote}` : ''}
-              </Text>
-              {mine && (
-                <Pressable onPress={resetToOriginal} hitSlop={10} accessibilityRole="button" accessibilityLabel="Orijinal tarife dön">
-                  <Text variant="subhead" weight="700" color="accentText">
-                    Orijinal
+              {entry.customized && (
+                <View style={[styles.custom, { backgroundColor: colors.surfaceMuted }]}>
+                  <Icon name="color-wand-outline" size={18} color={colors.text} />
+                  <Text variant="subhead" style={styles.flex}>
+                    Sana göre uyarlandı{entry.customNote ? `: ${entry.customNote}` : ''}
                   </Text>
-                </Pressable>
-              )}
-            </View>
-          )}
-
-          {entry.generation && <ChefNote generation={entry.generation} title={recipe.title} mine={mine} />}
-
-          <VoiceMemo entry={entry} />
-
-          <AdaptChips entry={entry} mine={mine} />
-
-          <ListGroup>
-            {source && <SourceCreator source={source} first />}
-            <ListRow
-              first={!source}
-              leading={<ChefAvatar size={40} />}
-              title="AI Şefe sor"
-              subtitle="Eksik malzeme, porsiyon, süre… Tarifi sana göre uyarlar."
-              onPress={openAssistant}
-            />
-          </ListGroup>
-
-          <SegmentedControl
-            label="Tarif bölümü"
-            segments={[
-              { value: 'ingredients' as Tab, label: 'Malzemeler' },
-              ...(hasSteps ? [{ value: 'steps' as Tab, label: 'Yapılışı' }] : []),
-              ...(hasNotes ? [{ value: 'notes' as Tab, label: 'İpuçları' }] : []),
-            ]}
-            value={tab}
-            onChange={setTab}
-          />
-
-          {tab === 'ingredients' && (
-            <View style={styles.tab}>
-              {people != null && (
-                <View style={[styles.servings, { borderColor: colors.border }]}>
-                  <View style={styles.flex}>
-                    <Text variant="headline">Kaç kişilik?</Text>
-                    <Text variant="footnote" color="textSecondary">
-                      {ingredientCount(recipe)} malzeme
-                    </Text>
-                  </View>
-                  <ServingsStepper value={people} onChange={setServings} />
+                  {mine && (
+                    <Pressable onPress={resetToOriginal} hitSlop={10} accessibilityRole="button" accessibilityLabel="Orijinal tarife dön">
+                      <Text variant="subhead" weight="700" color="accentText">
+                        Orijinal
+                      </Text>
+                    </Pressable>
+                  )}
                 </View>
               )}
-              <IngredientChecklist groups={recipe.ingredient_groups} factor={factor} />
-              <KitchenBar entry={entry} factor={factor} />
-              <Text variant="footnote" color="textTertiary" align="center">
-                Hazırladığın malzemeye dokunup işaretleyebilirsin
-              </Text>
-            </View>
+
+              {entry.generation && <ChefNote generation={entry.generation} title={recipe.title} mine={mine} />}
+
+              <VoiceMemo entry={entry} />
+
+              <AdaptChips entry={entry} mine={mine} />
+
+              <ListGroup>
+                {source && <SourceCreator source={source} first />}
+                <ListRow
+                  first={!source}
+                  leading={<ChefAvatar size={40} />}
+                  title="AI Şefe sor"
+                  subtitle="Eksik malzeme, porsiyon, süre… Tarifi sana göre uyarlar."
+                  onPress={openAssistant}
+                />
+              </ListGroup>
+
+              <SegmentedControl
+                label="Tarif bölümü"
+                segments={[
+                  { value: 'ingredients' as Tab, label: 'Malzemeler' },
+                  ...(hasSteps ? [{ value: 'steps' as Tab, label: 'Yapılışı' }] : []),
+                  ...(hasNotes ? [{ value: 'notes' as Tab, label: 'İpuçları' }] : []),
+                ]}
+                value={tab}
+                onChange={setTab}
+              />
+
+              {tab === 'ingredients' && (
+                <View style={styles.tab}>
+                  {people != null && (
+                    <View style={[styles.servings, { borderColor: colors.border }]}>
+                      <View style={styles.flex}>
+                        <Text variant="headline">Kaç kişilik?</Text>
+                        <Text variant="footnote" color="textSecondary">
+                          {ingredientCount(recipe)} malzeme
+                        </Text>
+                      </View>
+                      <ServingsStepper value={people} onChange={setServings} />
+                    </View>
+                  )}
+                  <IngredientChecklist groups={recipe.ingredient_groups} factor={factor} />
+                  <KitchenBar entry={entry} factor={factor} />
+                  <Text variant="footnote" color="textTertiary" align="center">
+                    Hazırladığın malzemeye dokunup işaretleyebilirsin
+                  </Text>
+                </View>
+              )}
+              {tab === 'steps' && (
+                <View style={styles.tab}>
+                  <Text variant="footnote" color="textSecondary">
+                    {recipe.steps.length} adım · “Pişirmeye başla” ile adım adım ilerleyebilirsin
+                  </Text>
+                  <StepList recipe={recipe} />
+                </View>
+              )}
+              {tab === 'notes' && <NotesCard recipe={recipe} />}
+            </>
           )}
-          {tab === 'steps' && (
-            <View style={styles.tab}>
-              <Text variant="footnote" color="textSecondary">
-                {recipe.steps.length} adım · “Pişirmeye başla” ile adım adım ilerleyebilirsin
-              </Text>
-              <StepList recipe={recipe} />
-            </View>
-          )}
-          {tab === 'notes' && <NotesCard recipe={recipe} />}
         </View>
       </Animated.ScrollView>
 
@@ -295,16 +323,18 @@ export default function RecipeScreen() {
         </View>
       </View>
 
-      <StickyFooter style={styles.footer}>
-        {hasSteps ? (
-          <>
-            <Button title="Sor" icon="chatbubble-ellipses-outline" variant="secondary" onPress={openAssistant} style={styles.ask} />
-            <Button title="Pişirmeye başla" trailingIcon="arrow-forward" onPress={() => router.push(`/cook/${entry.id}`)} style={styles.flex} />
-          </>
-        ) : (
-          <Button title="AI Şefe sor" icon="chatbubble-ellipses-outline" onPress={openAssistant} style={styles.flex} />
-        )}
-      </StickyFooter>
+      {locked ? null : (
+        <StickyFooter style={styles.footer}>
+          {hasSteps ? (
+            <>
+              <Button title="Sor" icon="chatbubble-ellipses-outline" variant="secondary" onPress={openAssistant} style={styles.ask} />
+              <Button title="Pişirmeye başla" trailingIcon="arrow-forward" onPress={() => router.push(`/cook/${entry.id}`)} style={styles.flex} />
+            </>
+          ) : (
+            <Button title="AI Şefe sor" icon="chatbubble-ellipses-outline" onPress={openAssistant} style={styles.flex} />
+          )}
+        </StickyFooter>
+      )}
     </View>
   );
 }
@@ -331,6 +361,7 @@ function SavePill({ onPress, busy }: { onPress: () => void; busy: boolean }) {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   flex: { flex: 1 },
+  lockOnly: { paddingHorizontal: ScreenPadding, paddingTop: 24 },
   sheet: {
     marginTop: -OVERLAP,
     borderTopLeftRadius: Radius.sheet,

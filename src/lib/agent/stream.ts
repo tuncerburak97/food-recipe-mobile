@@ -1,7 +1,7 @@
 import { fetch as expoFetch } from 'expo/fetch';
 import { Platform } from 'react-native';
 
-import { API_BASE_URL, ApiError, authHeaders, toEntry } from '@/lib/api';
+import { API_BASE_URL, ApiError, authHeaders, notifyLimit, toCreator, toEntry } from '@/lib/api';
 import type { AdaptKind } from '@/lib/adapt';
 import type { AgentAction, AgentBlock, AgentChanged, AgentEvent, AgentHistoryTurn, AgentLink, AgentStep } from '@/lib/agent/types';
 import type { ApiEntry, Creator, GenerationJob } from '@/lib/types';
@@ -63,7 +63,7 @@ function toBlock(b: RawBlock): AgentBlock | null {
     case 'recipes':
       return { id: b.id, type: 'recipes', title: b.title, recipes: (b.recipes ?? []).map(toItem), total: b.total, more: b.more };
     case 'creators':
-      return { id: b.id, type: 'creators', title: b.title, creators: b.creators ?? [] };
+      return { id: b.id, type: 'creators', title: b.title, creators: (b.creators ?? []).map(toCreator) };
     case 'plan':
       return { id: b.id, type: 'plan', title: b.title, plan: (b.plan ?? []).map((p) => ({ label: p.label, recipe: toItem(p.recipe) })) };
     case 'notice':
@@ -142,13 +142,15 @@ export async function streamAgent(messages: AgentHistoryTurn[], onEvent: (e: Age
       signal: inner.signal,
     });
     if (!res.ok) {
-      let body: { error?: { code: string; message: string } } | null = null;
+      let body: { error?: { code: string; message: string; details?: unknown } } | null = null;
       try {
         body = await res.json();
       } catch {
         // not JSON
       }
-      throw new ApiError(body?.error?.code ?? 'AGENT_ERROR', body?.error?.message ?? 'Asistan şu an cevap veremedi', res.status);
+      const err = new ApiError(body?.error?.code ?? 'AGENT_ERROR', body?.error?.message ?? 'Asistan şu an cevap veremedi', res.status, body?.error?.details);
+      notifyLimit(err); // today's questions are used up: the paywall opens
+      throw err;
     }
     const feed = createSseParser();
     const decoder = new TextDecoder();

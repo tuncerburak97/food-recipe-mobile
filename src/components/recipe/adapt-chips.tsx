@@ -16,7 +16,7 @@ import {
   type AdaptKind,
   type PreviousVersion,
 } from '@/lib/adapt';
-import { describeError } from '@/lib/api';
+import { describeError, isLimitError } from '@/lib/api';
 import { upperTr } from '@/lib/format';
 import { useMe } from '@/lib/queries';
 import type { RecipeEntry } from '@/lib/types';
@@ -91,6 +91,7 @@ export function AdaptChips({ entry, mine }: { entry: RecipeEntry; mine: boolean 
         TOAST_MS,
       );
     } catch (e) {
+      if (isLimitError(e)) return; // the paywall is already opening
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       const err = describeAdaptError(e);
       showToast(

@@ -149,6 +149,8 @@ export interface Reel {
 export interface ApiErrorBody {
   code: string;
   message: string;
+  /** Extra data with some errors, e.g. which daily limit was reached (see lib/access LimitDetails). */
+  details?: unknown;
 }
 
 export interface FetchRecipeResponse extends Reel {
@@ -167,6 +169,11 @@ export interface ApiUser {
   recipe_count: number;
   profile: CookProfile | null;
   onboarded_at: string | null;
+  /** From Sign in with Apple / Google; null for guests. Servers from before accounts send none of these. */
+  email?: string | null;
+  providers?: string[];
+  is_guest?: boolean;
+  premium?: boolean;
 }
 
 export type RecipeOrigin = 'instagram' | 'text' | 'ai' | 'voice';
@@ -286,6 +293,14 @@ export interface AppUser {
   recipeCount?: number;
   profile?: CookProfile;
   onboarded?: boolean;
+  /** When the account was made (ISO), for prompts that wait a few days. */
+  createdAt?: string;
+  email?: string;
+  /** Sign-in methods attached to the account: "apple", "google". */
+  providers?: string[];
+  /** True until the user signs in: the account lives only on this install. */
+  guest?: boolean;
+  premium?: boolean;
 }
 
 /** Where a recipe came from (the Instagram reel), kept small so it can be stored on the device. */

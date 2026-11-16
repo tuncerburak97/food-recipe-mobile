@@ -4,15 +4,19 @@ import { Stack } from 'expo-router/stack';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { PostHogProvider } from 'posthog-react-native';
 
+import { AccountEffects } from '@/components/account/account-effects';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { TimerAlarm } from '@/components/cook/timer-alarm';
 import { GenerationWatcher, ToastHost } from '@/components/ui/toast-host';
 import { useAppFonts } from '@/hooks/use-app-fonts';
 import { useTheme } from '@/hooks/use-theme';
+import { openPaywall, useAppConfig } from '@/lib/access';
+import { identifyUser, posthog, useScreenTracking } from '@/lib/analytics';
 import { usePushNotifications } from '@/lib/push';
-import { queryClient } from '@/lib/queries';
+import { queryClient, useMe } from '@/lib/queries';
 import { AppearanceProvider } from '@/store/appearance';
 import { takePendingShare } from '@/store/pending-share';
 import { SessionProvider, useSession } from '@/store/session';
@@ -21,9 +25,11 @@ SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   return (
-    <AppearanceProvider>
-      <ThemedRoot />
-    </AppearanceProvider>
+    <PostHogProvider client={posthog} autocapture={{ captureScreens: false, captureTouches: false }}>
+      <AppearanceProvider>
+        <ThemedRoot />
+      </AppearanceProvider>
+    </PostHogProvider>
   );
 }
 
@@ -61,20 +67,27 @@ function RootStack() {
   const fontsReady = useAppFonts();
   const ready = status !== 'loading' && fontsReady;
   usePushNotifications(ready && status === 'ready');
+  useScreenTracking();
 
   useEffect(() => {
     if (ready) SplashScreen.hideAsync();
   }, [ready]);
 
-  // A link shared on first launch waits behind onboarding; open "Tarif ekle" with it once the user is in.
+  // A link shared on first launch waits behind onboarding; open it once the user is in: a recipe
+  // someone sent ("shared:<token>"), or a video to add. Otherwise the paywall may greet the new
+  // user once, when the server says so (off by default: people try the app first).
+  const { billing } = useAppConfig();
+  const greetWithPaywall = billing.enabled && billing.nudges.paywall_after_onboarding;
   const previous = useRef(status);
   useEffect(() => {
     const finishedOnboarding = previous.current === 'onboarding' && status === 'ready';
     previous.current = status;
     if (!finishedOnboarding) return;
     const link = takePendingShare();
-    if (link) setTimeout(() => router.push(`/import?url=${encodeURIComponent(link)}`), 300);
-  }, [status]);
+    if (link?.startsWith('shared:')) setTimeout(() => router.push(`/shared/${link.slice('shared:'.length)}`), 300);
+    else if (link) setTimeout(() => router.push(`/import?url=${encodeURIComponent(link)}`), 300);
+    else if (greetWithPaywall) setTimeout(() => openPaywall('onboarding'), 900);
+  }, [status, greetWithPaywall]);
 
   if (!ready) return null;
   if (status === 'error') {
@@ -94,6 +107,8 @@ function RootStack() {
   return (
     <>
       {status === 'ready' && <GenerationWatcher />}
+      {status === 'ready' && <AccountEffects />}
+      <AnalyticsIdentity />
       <Stack
         screenOptions={{
           headerShown: false,
@@ -118,13 +133,30 @@ function RootStack() {
           <Stack.Screen name="journal" options={{ contentStyle: { backgroundColor: colors.surface } }} />
           <Stack.Screen name="agent" options={{ contentStyle: { backgroundColor: colors.surface } }} />
           <Stack.Screen name="voice-recipe" options={{ presentation: 'modal', gestureEnabled: false, contentStyle: { backgroundColor: colors.surface } }} />
+          <Stack.Screen name="account" options={{ contentStyle: { backgroundColor: colors.surface } }} />
+          <Stack.Screen name="paywall" options={{ presentation: 'modal', contentStyle: { backgroundColor: colors.surface } }} />
+          <Stack.Screen name="shared/[token]" options={{ presentation: 'modal', contentStyle: { backgroundColor: colors.surface } }} />
+          <Stack.Screen name="sign-in" options={{ presentation: 'formSheet', sheetAllowedDetents: 'fitToContents', sheetGrabberVisible: true, sheetCornerRadius: 28, contentStyle: { backgroundColor: colors.surface } }} />
         </Stack.Protected>
         <Stack.Protected guard={status === 'onboarding'}>
           <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
         </Stack.Protected>
+
       </Stack>
     </>
   );
+}
+
+/** Links analytics to the backend user once the account is known. */
+function AnalyticsIdentity() {
+  const { data: me } = useMe();
+  const id = me?.id;
+  const name = me?.name;
+  const onboarded = me?.onboarded;
+  useEffect(() => {
+    if (id) identifyUser(id, { name, onboarded });
+  }, [id, name, onboarded]);
+  return null;
 }
 
 const styles = StyleSheet.create({

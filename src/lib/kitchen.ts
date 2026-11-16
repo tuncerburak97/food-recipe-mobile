@@ -121,7 +121,7 @@ function toEntry(e: ApiEntry): RecipeEntry {
           url: s.url,
           ownerUsername: s.owner_username,
           ownerFullName: s.owner_full_name,
-          ownerAvatarUrl: s.owner_avatar_url || undefined,
+          ownerAvatarUrl: s.owner_avatar_url ? (s.owner_avatar_url.startsWith('/') ? API_BASE_URL + s.owner_avatar_url : s.owner_avatar_url) : undefined,
           ownerVerified: s.owner_verified,
           likes: s.likes ?? undefined,
           plays: s.plays,

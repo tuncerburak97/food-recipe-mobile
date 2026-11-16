@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { useEffect } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 
+import { AccessStrip } from '@/components/account/access-strip';
 import { AssistantHero } from '@/components/home/assistant-hero';
 import { CategoryTiles } from '@/components/home/category-tiles';
 import { CreatorRail } from '@/components/home/creator-rail';
@@ -93,6 +94,7 @@ export default function HomeScreen() {
           </>
         }>
         <View style={styles.sheet}>
+          <AccessStrip />
           <GenerationStatus jobs={generations.data?.items ?? []} />
 
           {recent.isPending ? (
