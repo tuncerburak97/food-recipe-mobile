@@ -1,9 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
+import type { VideoPlayer } from 'expo-video';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, {
+  cancelAnimation,
   Easing,
   FadeIn,
   FadeInDown,
@@ -17,6 +19,7 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { RecipeImage } from '@/components/recipe/recipe-image';
+import { ReelFrame, ReelPlayer } from '@/components/recipe/reel-loop';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { StickyFooter } from '@/components/ui/layout';
@@ -59,8 +62,9 @@ function pickSamples(items: RecipeEntry[], wanted: string[]): RecipeEntry[] {
 
 /**
  * Onboarding's first real moment: the user tries the app with a sample link. They pick a sample
- * Instagram video and watch it turn into the recipe the app made from it. The recipe is then added
- * to the user's book, so "Tariflerim" is not empty on the first visit. The wording and which
+ * Instagram video and watch it turn into the recipe the app made from it: the video itself plays
+ * (without sound) while it is "watched", and stays next to the finished recipe. The recipe is then
+ * added to the user's book, so "Tariflerim" is not empty on the first visit. The wording and which
  * videos are offered come from the server (billing.onboarding.demo).
  */
 export function DemoStep({ onNext }: { onNext: () => void }) {
@@ -143,8 +147,12 @@ export function DemoStep({ onNext }: { onNext: () => void }) {
           </Animated.View>
         )}
 
-        {phase === 'working' && entry && <Working entry={entry} stage={stage} />}
-        {phase === 'done' && entry && recipe && <Reveal entry={entry} recipe={recipe} saved={saved} />}
+        {/* One player and one frame for both moments, so the video keeps playing from the scan into the recipe. */}
+        {phase !== 'pick' && entry ? (
+          <ReelPlayer shortcode={entry.source?.shortcode}>
+            {(player) => <Run entry={entry} stage={stage} recipe={phase === 'done' ? recipe : null} saved={saved} player={player} />}
+          </ReelPlayer>
+        ) : null}
       </ScrollView>
 
       <StickyFooter style={styles.footer}>
@@ -255,36 +263,80 @@ function ReelCard({ entry, index, selected, onPress }: { entry: RecipeEntry; ind
   );
 }
 
-/** The chosen video with a scanning light over it, and the stages ticking off below. */
-function Working({ entry, stage }: { entry: RecipeEntry; stage: number }) {
+/** Width of the video next to the finished recipe; its height keeps a reel's shape. */
+const RESULT_VIDEO = 136;
+
+/**
+ * The chosen video, playing: large under a scanning light while the stages tick off, then small
+ * next to the recipe's name (where its sound can be turned on) with the recipe under it. It is the
+ * same frame in both, only moved, so the video does not stop or start again in between.
+ */
+function Run({ entry, stage, recipe, saved, player }: { entry: RecipeEntry; stage: number; recipe: Recipe | null; saved: boolean; player: VideoPlayer | null }) {
   const { colors } = useTheme();
   const { width } = useWindowDimensions();
-  const cardWidth = Math.min(200, width * 0.46);
-  const cardHeight = cardWidth * 1.5;
+  const done = recipe != null;
+  const cardWidth = done ? RESULT_VIDEO : Math.min(200, width * 0.46);
+  const cardHeight = done ? Math.round((RESULT_VIDEO * 16) / 9) : cardWidth * 1.5;
   const scan = useSharedValue(0);
   const glow = useSharedValue(0);
 
   useEffect(() => {
+    if (done) return;
     scan.value = withRepeat(withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.quad) }), -1, true);
     glow.value = withRepeat(withSequence(withTiming(1, { duration: 900 }), withTiming(0, { duration: 900 })), -1);
-  }, [scan, glow]);
+    return () => {
+      cancelAnimation(scan);
+      cancelAnimation(glow);
+    };
+  }, [done, scan, glow]);
 
   const scanStyle = useAnimatedStyle(() => ({ transform: [{ translateY: scan.value * (cardHeight - 60) }] }));
   const glowStyle = useAnimatedStyle(() => ({ opacity: 0.25 + glow.value * 0.45, transform: [{ scale: 1 + glow.value * 0.04 }] }));
 
   return (
-    <Animated.View entering={FadeIn.duration(260)} style={styles.working}>
-      <View style={{ width: cardWidth, height: cardHeight }}>
-        <Animated.View style={[styles.glow, { backgroundColor: colors.accent, borderRadius: Radius.xl + 6 }, glowStyle]} />
-        <View style={[styles.workingReel, { borderRadius: Radius.xl }]}>
-          <RecipeImage uri={entry.imageUrl} style={StyleSheet.absoluteFill} placeholderSize={72} />
-          <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(10,12,16,0.25)' }]} />
-          <Animated.View style={[styles.scan, scanStyle]}>
-            <LinearGradient colors={['rgba(236,122,78,0)', 'rgba(236,122,78,0.55)', 'rgba(255,255,255,0.9)']} style={StyleSheet.absoluteFill} />
-          </Animated.View>
+    <View style={styles.block}>
+      <View style={done ? styles.result : styles.working}>
+        <View style={{ width: cardWidth, height: cardHeight }}>
+          {done ? null : <Animated.View style={[styles.glow, { backgroundColor: colors.accent, borderRadius: Radius.xl + 6 }, glowStyle]} />}
+          <View style={[styles.reelClip, { borderRadius: done ? Radius.lg : Radius.xl }]}>
+            <ReelFrame player={player} imageUrl={entry.imageUrl} sound={done} style={StyleSheet.absoluteFill} />
+            {done ? null : <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(10,12,16,0.25)' }]} />}
+            {done ? null : (
+              <Animated.View style={[styles.scan, scanStyle]}>
+                <LinearGradient colors={['rgba(236,122,78,0)', 'rgba(236,122,78,0.55)', 'rgba(255,255,255,0.9)']} style={StyleSheet.absoluteFill} />
+              </Animated.View>
+            )}
+          </View>
         </View>
+        {done ? (
+          <Animated.View entering={FadeInDown.duration(320)} style={styles.resultText}>
+            <View style={styles.ready}>
+              <Animated.View entering={ZoomIn.delay(150).springify().damping(10)} style={[styles.doneBadge, { backgroundColor: colors.successSoft }]}>
+                <Icon name="checkmark" size={14} color={colors.success} />
+              </Animated.View>
+              <Text variant="overline" color="success">
+                {upperTr('Tarif hazır')}
+              </Text>
+            </View>
+            <Text variant="title" accessibilityRole="header" numberOfLines={4}>
+              {recipe.title}
+            </Text>
+            <Text variant="subhead" color="textSecondary" numberOfLines={1}>
+              @{entry.source?.ownerUsername} videosundan
+            </Text>
+          </Animated.View>
+        ) : null}
       </View>
+      {done ? <RecipeBody recipe={recipe} saved={saved} /> : <Stages entry={entry} stage={stage} />}
+    </View>
+  );
+}
 
+/** What is being done to the video, one stage after another. */
+function Stages({ entry, stage }: { entry: RecipeEntry; stage: number }) {
+  const { colors } = useTheme();
+  return (
+    <Animated.View entering={FadeIn.duration(260)} style={styles.block}>
       <View style={styles.header}>
         <Text variant="title" align="center" accessibilityRole="header">
           Video tarife dönüşüyor
@@ -322,8 +374,8 @@ function Working({ entry, stage }: { entry: RecipeEntry; stage: number }) {
   );
 }
 
-/** The finished recipe, revealed piece by piece: title, facts, ingredients, the first steps. */
-function Reveal({ entry, recipe, saved }: { entry: RecipeEntry; recipe: Recipe; saved: boolean }) {
+/** The finished recipe, revealed piece by piece: facts, ingredients, the first steps. */
+function RecipeBody({ recipe, saved }: { recipe: Recipe; saved: boolean }) {
   const { colors } = useTheme();
   const ingredients = recipe.ingredient_groups.flatMap((g) => g.ingredients);
   const shown = ingredients.slice(0, 10);
@@ -338,34 +390,14 @@ function Reveal({ entry, recipe, saved }: { entry: RecipeEntry; recipe: Recipe; 
 
   return (
     <View style={styles.block}>
-      <Animated.View entering={FadeInDown.duration(320)} style={styles.from}>
-        <RecipeImage uri={entry.imageUrl} style={styles.thumb} placeholderSize={22} />
-        <View style={styles.flex}>
-          <Text variant="overline" color="success">
-            {upperTr('Tarif hazır')}
-          </Text>
-          <Text variant="subhead" color="textSecondary" numberOfLines={1}>
-            @{entry.source?.ownerUsername} videosundan
-          </Text>
-        </View>
-        <Animated.View entering={ZoomIn.delay(150).springify().damping(10)} style={[styles.doneBadge, { backgroundColor: colors.successSoft }]}>
-          <Icon name="checkmark" size={18} color={colors.success} />
-        </Animated.View>
-      </Animated.View>
-
-      <Animated.View entering={FadeInDown.delay(120).duration(340)} style={styles.header}>
-        <Text variant="display" accessibilityRole="header">
-          {recipe.title}
-        </Text>
-        <View style={styles.facts}>
-          {facts.map((f) => (
-            <View key={f} style={[styles.fact, { backgroundColor: colors.surfaceMuted }]}>
-              <Text variant="footnote" weight="600">
-                {f}
-              </Text>
-            </View>
-          ))}
-        </View>
+      <Animated.View entering={FadeInDown.delay(120).duration(340)} style={styles.facts}>
+        {facts.map((f) => (
+          <View key={f} style={[styles.fact, { backgroundColor: colors.surfaceMuted }]}>
+            <Text variant="footnote" weight="600">
+              {f}
+            </Text>
+          </View>
+        ))}
       </Animated.View>
 
       <View style={styles.section}>
@@ -447,17 +479,18 @@ const styles = StyleSheet.create({
   igBadge: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.35)' },
   check: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   reelBottom: { position: 'absolute', left: 8, right: 8, bottom: 8, gap: 2 },
-  working: { alignItems: 'center', gap: 24, paddingTop: 12 },
+  working: { alignItems: 'center', paddingTop: 12 },
   glow: { ...StyleSheet.absoluteFill, margin: -6 },
-  workingReel: { flex: 1, overflow: 'hidden', backgroundColor: '#111' },
+  reelClip: { flex: 1, overflow: 'hidden', backgroundColor: '#111' },
   scan: { position: 'absolute', left: 0, right: 0, top: 0, height: 60 },
   stages: { alignSelf: 'stretch', borderRadius: Radius.lg, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden' },
   stageRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 52, paddingHorizontal: 16 },
   stageMark: { width: 22, height: 22, alignItems: 'center', justifyContent: 'center' },
   stageDot: { width: 18, height: 18, borderRadius: 9, borderWidth: 1.5 },
-  from: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  thumb: { width: 44, height: 56, borderRadius: 10 },
-  doneBadge: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  result: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  resultText: { flex: 1, gap: 8 },
+  ready: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  doneBadge: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   facts: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   fact: { paddingHorizontal: 12, height: 32, borderRadius: Radius.pill, justifyContent: 'center' },
   section: { gap: 12 },
