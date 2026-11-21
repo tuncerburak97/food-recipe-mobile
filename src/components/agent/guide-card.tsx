@@ -44,7 +44,7 @@ export function GuideCard({ kind, onAsk, onClose }: Props) {
     case 'write':
       return (
         <IngredientGuide
-          title="AI Şef neyle yazsın?"
+          title="Yapay Zeka Şefi neyle yazsın?"
           hint="Elindekileri seç; tarif birkaç dakikada Tariflerim’e gelir."
           action="Tarifi yazdır"
           ask={(sel) => `${listTr(sel)} ile bana bir tarif yaz`}

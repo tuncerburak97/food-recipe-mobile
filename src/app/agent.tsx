@@ -34,7 +34,7 @@ const ACTION_LABELS: Record<AgentAction['screen'], string> = {
   creator: 'Hesabı aç',
   pantry: 'Dolabımı aç',
   shopping: 'Alışveriş listesini aç',
-  chef: 'AI Şef’e tarif yazdır',
+  chef: 'Yapay Zeka Şefi’ne tarif yazdır',
   my_recipes: 'Tariflerimi aç',
   journal: 'Pişirdiklerimi aç',
   voice_recipe: 'Sesle tarif anlat',
@@ -74,7 +74,7 @@ function AssistantMessage({ turn, latest, onRetry, onAsk }: { turn: AssistantTur
           <Chip label={ACTION_LABELS[turn.action.screen]} icon="open-outline" kind="button" onPress={() => openScreen(turn.action!)} style={styles.chip} />
         ) : null}
         {latest && searchedNothing && !turn.action ? (
-          <Chip label="AI Şef’e tarif yaptır" icon="sparkles-outline" kind="button" onPress={() => router.push('/chef')} style={styles.chip} />
+          <Chip label="Yapay Zeka Şefi’ne tarif yaptır" icon="sparkles-outline" kind="button" onPress={() => router.push('/chef')} style={styles.chip} />
         ) : null}
         {latest && !turn.streaming && turn.suggestions?.length ? (
           <View style={styles.suggestions}>
@@ -150,7 +150,7 @@ function RecorderBridge({ attach }: { attach: (r: DictationRecorder | null) => v
 }
 
 /**
- * AI Şef: ask by typing or by voice. It finds recipes ("içinde bulgur olanlar", "Refika'nın
+ * Yapay Zeka Şefi: ask by typing or by voice. It finds recipes ("içinde bulgur olanlar", "Refika'nın
  * tarifleri"), runs the kitchen (pantry, shopping list), saves, adapts and writes recipes, plans
  * menus, and opens screens. Params: q (ask at once), voice=1 (start listening), focus=1 (keyboard).
  */
@@ -233,7 +233,7 @@ export default function AgentScreen() {
       {dictation.mode === 'record' ? <RecorderBridge attach={dictation.attachRecorder} /> : null}
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <ScreenHeader
-          title="AI Şef"
+          title="Yapay Zeka Şefi"
           tone="muted"
           right={turns.length > 0 ? <IconButton icon="create-outline" label="Yeni sohbet" tone="muted" onPress={clear} /> : undefined}
         />

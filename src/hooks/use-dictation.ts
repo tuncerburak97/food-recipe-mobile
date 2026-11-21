@@ -10,7 +10,7 @@ export type DictationMode = 'native' | 'record' | 'none';
 export type DictationPhase = 'idle' | 'listening' | 'transcribing';
 
 /** Words the recognizer should expect in a recipe app. */
-const HINTS = ['tarif', 'pilav', 'bulgur', 'pirinç', 'mercimek', 'tavuk', 'kıyma', 'börek', 'çorba', 'tatlı', 'dolabım', 'alışveriş listesi', 'AI şef'];
+const HINTS = ['tarif', 'pilav', 'bulgur', 'pirinç', 'mercimek', 'tavuk', 'kıyma', 'börek', 'çorba', 'tatlı', 'dolabım', 'alışveriş listesi', 'yapay zeka şefi'];
 
 const RECORD_MAX_MS = 15_000;
 

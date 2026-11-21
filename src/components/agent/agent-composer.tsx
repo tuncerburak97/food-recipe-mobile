@@ -102,7 +102,7 @@ export function AgentComposer({ value, onChangeText, onSend, busy, onStop, voice
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
         style={[styles.input, { color: colors.text }]}
-        accessibilityLabel="AI Şef’e mesaj"
+        accessibilityLabel="Yapay Zeka Şefi’ne mesaj"
       />
       {busy ? (
         <IconButton icon="stop" label="Durdur" tone="muted" size={40} onPress={onStop} style={{ backgroundColor: colors.surface }} />

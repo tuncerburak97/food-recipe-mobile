@@ -217,7 +217,7 @@ function JobBlock({ job }: { job: GenerationJob }) {
     );
   }
   return (
-    <StatusCard icon="sparkles" tone="neutral" busy title="AI Şef tarifini yazıyor">
+    <StatusCard icon="sparkles" tone="neutral" busy title="Yapay Zeka Şefi tarifini yazıyor">
       <Text variant="callout" color="textSecondary">
         {jobIngredients(live).slice(0, 4).join(', ')} · yaklaşık 1 dakika
       </Text>

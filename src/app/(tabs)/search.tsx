@@ -73,7 +73,7 @@ export default function SearchScreen() {
           {query.trim().length >= 2 ? (
             // The same words, asked to the assistant: it also understands "sütsüz", "20 dakikalık"...
             <Chip
-              label={`“${query.trim()}” için AI Şef’e sor`}
+              label={`“${query.trim()}” için Yapay Zeka Şefi’ne sor`}
               icon="sparkles-outline"
               kind="button"
               onPress={() => router.push({ pathname: '/agent', params: { q: query.trim() } })}

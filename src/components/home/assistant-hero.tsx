@@ -48,9 +48,9 @@ export function AssistantHero() {
 
       <View style={styles.top}>
         <ChefAvatar size={40} ring />
-        <Pressable onPress={() => router.push('/agent')} accessibilityRole="button" accessibilityLabel="AI Şef sohbetini aç" style={styles.titles}>
+        <Pressable onPress={() => router.push('/agent')} accessibilityRole="button" accessibilityLabel="Yapay Zeka Şefi sohbetini aç" style={styles.titles}>
           <Text variant="overline" tint={SOFT}>
-            AI ŞEF
+            YAPAY ZEKA ŞEFİ
           </Text>
           <Text variant="title2" tint={INK} numberOfLines={1}>
             Ne pişirelim?
@@ -75,7 +75,7 @@ export function AssistantHero() {
         <Pressable
           onPress={() => router.push({ pathname: '/agent', params: { focus: '1' } })}
           accessibilityRole="search"
-          accessibilityLabel="AI Şef’e yaz"
+          accessibilityLabel="Yapay Zeka Şefi’ne yaz"
           style={({ pressed }) => [styles.ask, pressed && styles.pressed]}>
           <Icon name="sparkles" size={18} color={ACCENT} />
           <Animated.View key={example} entering={FadeIn.duration(220)} exiting={FadeOut.duration(160)} style={styles.flex}>

@@ -107,7 +107,13 @@ export default function PaywallScreen() {
     return () => sub.remove();
   }, [hard]);
 
-  const close = () => (router.canGoBack() ? router.back() : router.replace('/'));
+  // The paywall that ends onboarding is followed by the welcome, whichever way it is left.
+  const welcomeNext = placement === 'onboarding' && billing.onboarding.welcome.enabled;
+  const close = (paid = false) => {
+    if (welcomeNext) router.replace(paid && me?.guest ? '/tour?then=signin' : '/tour');
+    else if (router.canGoBack()) router.back();
+    else router.replace('/');
+  };
   const dismiss = (how: 'close' | 'free' | 'later') => {
     track('paywall_dismissed', { placement, hard, how });
     close();
@@ -139,9 +145,10 @@ export default function PaywallScreen() {
       } else {
         showToast({ title: 'Premium açıldı', message: 'Artık sınır yok. Afiyet olsun.' });
       }
-      close();
-      // A guest who paid: offer to tie the subscription to an account, so it survives a new phone.
-      if (me?.guest) setTimeout(() => openSignIn('purchase'), 600);
+      close(true);
+      // A guest who paid: offer to tie the subscription to an account, so it survives a new phone
+      // (after the welcome, when that comes first).
+      if (me?.guest && !welcomeNext) setTimeout(() => openSignIn('purchase'), 600);
     } catch (e) {
       track('purchase_failed', { plan: selected.plan.id });
       Alert.alert('Satın alma tamamlanamadı', e instanceof Error ? e.message : 'Tekrar dener misin?');
@@ -248,7 +255,7 @@ export default function PaywallScreen() {
                   {premium ? 'Premium üyesin' : head.title}
                 </Text>
                 <Text variant="callout" color="textSecondary">
-                  {premium ? 'Tüm tarifler, videolar ve AI Şef sınırsız açık. Afiyet olsun.' : head.subtitle}
+                  {premium ? 'Tüm tarifler, videolar ve Yapay Zeka Şefi sınırsız açık. Afiyet olsun.' : head.subtitle}
                 </Text>
               </>
             )}
@@ -360,7 +367,7 @@ export default function PaywallScreen() {
           { paddingBottom: Math.max(insets.bottom, 8) + 2, backgroundColor: colors.surface, borderTopColor: overflows ? colors.border : 'transparent' },
         ]}>
         {premium ? (
-          <Button title="Tamam" trailingIcon={null} onPress={close} />
+          <Button title="Tamam" trailingIcon={null} onPress={() => close()} />
         ) : (
           <>
             <Button title={cta} trailingIcon="arrow-forward" onPress={purchase} loading={busy === 'buy'} disabled={!selected || busy === 'restore'} />

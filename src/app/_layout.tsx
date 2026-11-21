@@ -76,6 +76,8 @@ function RootStack() {
   // out (billing.nudges.paywall_after_onboarding, billing.paywall.hard).
   const { billing } = useAppConfig();
   const greetWithPaywall = billing.enabled && billing.nudges.paywall_after_onboarding;
+  // The welcome comes after that paywall (the paywall opens it), or at once when there is none.
+  const greetWithWelcome = billing.onboarding.welcome.enabled;
   const previous = useRef(status);
   useEffect(() => {
     const finishedOnboarding = previous.current === 'onboarding' && status === 'ready';
@@ -85,7 +87,8 @@ function RootStack() {
     if (link?.startsWith('shared:')) setTimeout(() => router.push(`/shared/${link.slice('shared:'.length)}`), 300);
     else if (link) setTimeout(() => router.push(`/import?url=${encodeURIComponent(link)}`), 300);
     else if (greetWithPaywall) setTimeout(() => openPaywall('onboarding'), 350);
-  }, [status, greetWithPaywall]);
+    else if (greetWithWelcome) setTimeout(() => router.push('/tour'), 350);
+  }, [status, greetWithPaywall, greetWithWelcome]);
 
   if (!ready) return null;
   if (status === 'error') {

@@ -20,7 +20,7 @@ export const CAPABILITIES: Capability[] = [
   { kind: 'category', icon: 'grid-outline', title: 'Kategori', hint: 'Tatlı, çorba, pilav…' },
   { kind: 'pantry', icon: 'cube-outline', title: 'Dolabımla', hint: 'Evdekilerle ne çıkar?' },
   { kind: 'menu', icon: 'calendar-outline', title: 'Menü planla', hint: 'Günlük ya da haftalık' },
-  { kind: 'write', icon: 'sparkles-outline', title: 'Tarif yazdır', hint: 'AI Şef sana yazsın' },
+  { kind: 'write', icon: 'sparkles-outline', title: 'Tarif yazdır', hint: 'Yapay Zeka Şefi sana yazsın' },
 ];
 
 /** The four Home shows (the chat has them all): the jobs people start with most. */

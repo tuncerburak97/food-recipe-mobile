@@ -5,7 +5,6 @@ import type { VideoPlayer } from 'expo-video';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, {
-  cancelAnimation,
   Easing,
   FadeIn,
   FadeInDown,
@@ -19,7 +18,7 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { RecipeImage } from '@/components/recipe/recipe-image';
-import { ReelFrame, ReelPlayer } from '@/components/recipe/reel-loop';
+import { RecipePreview } from '@/components/recipe/recipe-preview';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { StickyFooter } from '@/components/ui/layout';
@@ -29,8 +28,8 @@ import { Radius, ScreenPadding } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAppConfig } from '@/lib/access';
 import { api } from '@/lib/api';
-import { formatAmount, formatMinutes, ingredientCount, servingsText, totalMinutes, upperTr } from '@/lib/format';
-import type { Recipe, RecipeEntry } from '@/lib/types';
+import { ingredientCount, upperTr } from '@/lib/format';
+import type { RecipeEntry } from '@/lib/types';
 
 const SAMPLES = 3;
 /** The "working" moment lasts at least this long, so each stage can be read (ms). */
@@ -61,28 +60,46 @@ function pickSamples(items: RecipeEntry[], wanted: string[]): RecipeEntry[] {
 }
 
 /**
- * Onboarding's first real moment: the user tries the app with a sample link. They pick a sample
- * Instagram video and watch it turn into the recipe the app made from it: the video itself plays
- * (without sound) while it is "watched", and stays next to the finished recipe. The recipe is then
- * added to the user's book, so "Tariflerim" is not empty on the first visit. The wording and which
- * videos are offered come from the server (billing.onboarding.demo).
+ * The sample videos of the demo. The onboarding screen asks for them as it opens, so the first
+ * one's video can load while the questions are answered.
  */
-export function DemoStep({ onNext }: { onNext: () => void }) {
-  const insets = useSafeAreaInsets();
+export function useDemoSamples(enabled: boolean) {
   const { demo } = useAppConfig().billing.onboarding;
   const wanted = demo.samples.join('|');
-  const samples = useQuery({
+  return useQuery({
     queryKey: ['onboarding', 'samples', wanted],
     queryFn: async () => pickSamples((await api.listRecipes({ scope: 'all', limit: 60 })).items, demo.samples),
     staleTime: 10 * 60_000,
+    enabled,
   });
-  const [chosen, setChosen] = useState(0);
+}
+
+interface Props {
+  samples: RecipeEntry[];
+  loading: boolean;
+  /** Which sample is picked; the onboarding screen keeps it, since it loads that one's video. */
+  chosen: number;
+  onChoose: (index: number) => void;
+  /** The picked sample's video, already loading (null where it cannot be played in the app). */
+  player: VideoPlayer | null;
+  onNext: () => void;
+}
+
+/**
+ * Onboarding's live demo, after the questions: the user tries the app with a sample link. They
+ * pick a sample Instagram video, watch it being worked on, and get the recipe the app made from
+ * it, shown as the app shows every recipe (the video on top, playable). The recipe is then added
+ * to the user's book, so "Tariflerim" is not empty on the first visit. The wording and which
+ * videos are offered come from the server (billing.onboarding.demo).
+ */
+export function DemoStep({ samples, loading, chosen, onChoose, player, onNext }: Props) {
+  const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
+  const { demo } = useAppConfig().billing.onboarding;
   const [phase, setPhase] = useState<Phase>('pick');
   const [stage, setStage] = useState(0);
-  const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [saved, setSaved] = useState(false);
-  const list = samples.data ?? [];
-  const entry = list[chosen];
+  const entry = samples[chosen];
 
   const run = async () => {
     if (!entry?.source) return;
@@ -98,18 +115,44 @@ export function DemoStep({ onNext }: { onNext: () => void }) {
     // The sample's recipe was made from this video by the same pipeline; asking the server again
     // could start a slow re-extraction, so the stages only pace the reveal.
     await new Promise((r) => setTimeout(r, STAGE_MS * STAGES.length + 400));
-    const r: Recipe = entry.recipe;
     timers.forEach(clearTimeout);
     setStage(STAGES.length);
-    setRecipe(r);
     setPhase('done');
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    // Into the user's book; a failure here only means the line below stays hidden.
+    // Into the user's book; a failure here only changes the line over the recipe's name.
     api
       .saveRecipe(shortcode)
       .then(() => setSaved(true))
       .catch(() => {});
   };
+
+  if (phase === 'done' && entry) {
+    return (
+      <RecipePreview
+        entry={entry}
+        player={player}
+        banner={
+          <View style={[styles.ready, { backgroundColor: colors.successSoft }]}>
+            <Icon name="checkmark-circle" size={18} color={colors.success} />
+            <Text variant="subhead" weight="600" color="success" style={styles.flex}>
+              {saved ? 'Tarif hazır ve Tariflerim’e eklendi.' : 'Tarif hazır. Videodan çıkanların hepsi burada.'}
+            </Text>
+          </View>
+        }
+        footer={
+          <Button
+            title={demo.done_cta}
+            trailingIcon="arrow-forward"
+            onPress={() => {
+              // The video belongs to the onboarding screen and outlives this step: stop it here.
+              player?.pause();
+              onNext();
+            }}
+          />
+        }
+      />
+    );
+  }
 
   return (
     <View style={styles.page}>
@@ -127,13 +170,13 @@ export function DemoStep({ onNext }: { onNext: () => void }) {
                 {demo.subtitle}
               </Text>
             </View>
-            {samples.isPending ? (
+            {loading ? (
               <SampleSkeleton />
-            ) : list.length ? (
+            ) : samples.length ? (
               <>
                 <View style={styles.samples}>
-                  {list.map((e, i) => (
-                    <ReelCard key={e.id} entry={e} index={i} selected={i === chosen} onPress={() => setChosen(i)} />
+                  {samples.map((e, i) => (
+                    <ReelCard key={e.id} entry={e} index={i} selected={i === chosen} onPress={() => onChoose(i)} />
                   ))}
                 </View>
                 {entry?.source ? <SampleLink shortcode={entry.source.shortcode} /> : null}
@@ -147,23 +190,15 @@ export function DemoStep({ onNext }: { onNext: () => void }) {
           </Animated.View>
         )}
 
-        {/* One player and one frame for both moments, so the video keeps playing from the scan into the recipe. */}
-        {phase !== 'pick' && entry ? (
-          <ReelPlayer shortcode={entry.source?.shortcode}>
-            {(player) => <Run entry={entry} stage={stage} recipe={phase === 'done' ? recipe : null} saved={saved} player={player} />}
-          </ReelPlayer>
-        ) : null}
+        {phase === 'working' && entry && <Working entry={entry} stage={stage} />}
       </ScrollView>
 
       <StickyFooter style={styles.footer}>
-        {phase === 'pick' && list.length > 0 && (
-          <Button title={demo.cta} icon="sparkles" onPress={run} disabled={!entry} />
-        )}
+        {phase === 'pick' && samples.length > 0 && <Button title={demo.cta} icon="sparkles" onPress={run} disabled={!entry} />}
         {phase === 'pick' && (
-          <Button title={list.length || samples.isPending ? demo.skip : 'Devam'} variant={list.length || samples.isPending ? 'ghost' : 'primary'} size="md" onPress={onNext} />
+          <Button title={samples.length || loading ? demo.skip : 'Devam'} variant={samples.length || loading ? 'ghost' : 'primary'} size="md" onPress={onNext} />
         )}
         {phase === 'working' && <Button title="Tarif hazırlanıyor" loading disabled onPress={() => {}} />}
-        {phase === 'done' && <Button title="Harika! Şimdi seni tanıyalım" trailingIcon="arrow-forward" onPress={onNext} />}
       </StickyFooter>
     </View>
   );
@@ -263,80 +298,36 @@ function ReelCard({ entry, index, selected, onPress }: { entry: RecipeEntry; ind
   );
 }
 
-/** Width of the video next to the finished recipe; its height keeps a reel's shape. */
-const RESULT_VIDEO = 136;
-
-/**
- * The chosen video, playing: large under a scanning light while the stages tick off, then small
- * next to the recipe's name (where its sound can be turned on) with the recipe under it. It is the
- * same frame in both, only moved, so the video does not stop or start again in between.
- */
-function Run({ entry, stage, recipe, saved, player }: { entry: RecipeEntry; stage: number; recipe: Recipe | null; saved: boolean; player: VideoPlayer | null }) {
+/** The chosen video's cover with a scanning light over it, and the stages ticking off below. */
+function Working({ entry, stage }: { entry: RecipeEntry; stage: number }) {
   const { colors } = useTheme();
   const { width } = useWindowDimensions();
-  const done = recipe != null;
-  const cardWidth = done ? RESULT_VIDEO : Math.min(200, width * 0.46);
-  const cardHeight = done ? Math.round((RESULT_VIDEO * 16) / 9) : cardWidth * 1.5;
+  const cardWidth = Math.min(200, width * 0.46);
+  const cardHeight = cardWidth * 1.5;
   const scan = useSharedValue(0);
   const glow = useSharedValue(0);
 
   useEffect(() => {
-    if (done) return;
     scan.value = withRepeat(withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.quad) }), -1, true);
     glow.value = withRepeat(withSequence(withTiming(1, { duration: 900 }), withTiming(0, { duration: 900 })), -1);
-    return () => {
-      cancelAnimation(scan);
-      cancelAnimation(glow);
-    };
-  }, [done, scan, glow]);
+  }, [scan, glow]);
 
   const scanStyle = useAnimatedStyle(() => ({ transform: [{ translateY: scan.value * (cardHeight - 60) }] }));
   const glowStyle = useAnimatedStyle(() => ({ opacity: 0.25 + glow.value * 0.45, transform: [{ scale: 1 + glow.value * 0.04 }] }));
 
   return (
-    <View style={styles.block}>
-      <View style={done ? styles.result : styles.working}>
-        <View style={{ width: cardWidth, height: cardHeight }}>
-          {done ? null : <Animated.View style={[styles.glow, { backgroundColor: colors.accent, borderRadius: Radius.xl + 6 }, glowStyle]} />}
-          <View style={[styles.reelClip, { borderRadius: done ? Radius.lg : Radius.xl }]}>
-            <ReelFrame player={player} imageUrl={entry.imageUrl} sound={done} style={StyleSheet.absoluteFill} />
-            {done ? null : <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(10,12,16,0.25)' }]} />}
-            {done ? null : (
-              <Animated.View style={[styles.scan, scanStyle]}>
-                <LinearGradient colors={['rgba(236,122,78,0)', 'rgba(236,122,78,0.55)', 'rgba(255,255,255,0.9)']} style={StyleSheet.absoluteFill} />
-              </Animated.View>
-            )}
-          </View>
-        </View>
-        {done ? (
-          <Animated.View entering={FadeInDown.duration(320)} style={styles.resultText}>
-            <View style={styles.ready}>
-              <Animated.View entering={ZoomIn.delay(150).springify().damping(10)} style={[styles.doneBadge, { backgroundColor: colors.successSoft }]}>
-                <Icon name="checkmark" size={14} color={colors.success} />
-              </Animated.View>
-              <Text variant="overline" color="success">
-                {upperTr('Tarif hazır')}
-              </Text>
-            </View>
-            <Text variant="title" accessibilityRole="header" numberOfLines={4}>
-              {recipe.title}
-            </Text>
-            <Text variant="subhead" color="textSecondary" numberOfLines={1}>
-              @{entry.source?.ownerUsername} videosundan
-            </Text>
+    <Animated.View entering={FadeIn.duration(260)} style={styles.working}>
+      <View style={{ width: cardWidth, height: cardHeight }}>
+        <Animated.View style={[styles.glow, { backgroundColor: colors.accent, borderRadius: Radius.xl + 6 }, glowStyle]} />
+        <View style={[styles.workingReel, { borderRadius: Radius.xl }]}>
+          <RecipeImage uri={entry.imageUrl} style={StyleSheet.absoluteFill} placeholderSize={72} />
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(10,12,16,0.25)' }]} />
+          <Animated.View style={[styles.scan, scanStyle]}>
+            <LinearGradient colors={['rgba(236,122,78,0)', 'rgba(236,122,78,0.55)', 'rgba(255,255,255,0.9)']} style={StyleSheet.absoluteFill} />
           </Animated.View>
-        ) : null}
+        </View>
       </View>
-      {done ? <RecipeBody recipe={recipe} saved={saved} /> : <Stages entry={entry} stage={stage} />}
-    </View>
-  );
-}
 
-/** What is being done to the video, one stage after another. */
-function Stages({ entry, stage }: { entry: RecipeEntry; stage: number }) {
-  const { colors } = useTheme();
-  return (
-    <Animated.View entering={FadeIn.duration(260)} style={styles.block}>
       <View style={styles.header}>
         <Text variant="title" align="center" accessibilityRole="header">
           Video tarife dönüşüyor
@@ -374,93 +365,6 @@ function Stages({ entry, stage }: { entry: RecipeEntry; stage: number }) {
   );
 }
 
-/** The finished recipe, revealed piece by piece: facts, ingredients, the first steps. */
-function RecipeBody({ recipe, saved }: { recipe: Recipe; saved: boolean }) {
-  const { colors } = useTheme();
-  const ingredients = recipe.ingredient_groups.flatMap((g) => g.ingredients);
-  const shown = ingredients.slice(0, 10);
-  const steps = recipe.steps.slice(0, 3);
-  const minutes = totalMinutes(recipe);
-  const facts = [
-    minutes ? `⏱  ${formatMinutes(minutes)}` : null,
-    servingsText(recipe) ? `🍽  ${servingsText(recipe)}` : null,
-    `🧺  ${ingredients.length} malzeme`,
-    `👣  ${recipe.steps.length} adım`,
-  ].filter(Boolean) as string[];
-
-  return (
-    <View style={styles.block}>
-      <Animated.View entering={FadeInDown.delay(120).duration(340)} style={styles.facts}>
-        {facts.map((f) => (
-          <View key={f} style={[styles.fact, { backgroundColor: colors.surfaceMuted }]}>
-            <Text variant="footnote" weight="600">
-              {f}
-            </Text>
-          </View>
-        ))}
-      </Animated.View>
-
-      <View style={styles.section}>
-        <Animated.View entering={FadeIn.delay(260)}>
-          <Text variant="title3">Malzemeler</Text>
-        </Animated.View>
-        <View style={styles.ingredients}>
-          {shown.map((ing, i) => {
-            const amount = formatAmount(ing);
-            return (
-              <Animated.View
-                key={`${ing.name}-${i}`}
-                entering={ZoomIn.delay(320 + i * 70).springify().damping(14)}
-                style={[styles.ingredient, { backgroundColor: colors.accentSoft }]}>
-                <Text variant="subhead" weight="600" color="accentText">
-                  {amount ? `${amount} ` : ''}
-                </Text>
-                <Text variant="subhead" weight="600">
-                  {ing.name}
-                </Text>
-              </Animated.View>
-            );
-          })}
-          {ingredients.length > shown.length && (
-            <Animated.View entering={ZoomIn.delay(320 + shown.length * 70)} style={[styles.ingredient, { backgroundColor: colors.surfaceMuted }]}>
-              <Text variant="subhead" weight="600" color="textSecondary">
-                +{ingredients.length - shown.length}
-              </Text>
-            </Animated.View>
-          )}
-        </View>
-      </View>
-
-      <View style={styles.section}>
-        <Animated.View entering={FadeIn.delay(400 + shown.length * 70)}>
-          <Text variant="title3">Adımlar</Text>
-        </Animated.View>
-        {steps.map((s, i) => (
-          <Animated.View key={s.order} entering={FadeInDown.delay(480 + shown.length * 70 + i * 140).duration(320)} style={styles.step}>
-            <View style={[styles.stepNo, { backgroundColor: colors.ink }]}>
-              <Text variant="footnote" weight="700" color="onInk">
-                {i + 1}
-              </Text>
-            </View>
-            <Text variant="callout" numberOfLines={3} style={styles.flex}>
-              {s.text}
-            </Text>
-          </Animated.View>
-        ))}
-      </View>
-
-      {saved && (
-        <Animated.View entering={FadeInDown.duration(300)} style={[styles.saved, { backgroundColor: colors.successSoft }]}>
-          <Icon name="bookmark" size={16} color={colors.success} />
-          <Text variant="subhead" weight="600" color="success" style={styles.flex}>
-            Bu tarif Tariflerim’e eklendi. Uygulamada seni bekliyor.
-          </Text>
-        </Animated.View>
-      )}
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   page: { flex: 1 },
   flex: { flex: 1 },
@@ -479,24 +383,13 @@ const styles = StyleSheet.create({
   igBadge: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.35)' },
   check: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   reelBottom: { position: 'absolute', left: 8, right: 8, bottom: 8, gap: 2 },
-  working: { alignItems: 'center', paddingTop: 12 },
+  working: { alignItems: 'center', gap: 24, paddingTop: 12 },
   glow: { ...StyleSheet.absoluteFill, margin: -6 },
-  reelClip: { flex: 1, overflow: 'hidden', backgroundColor: '#111' },
+  workingReel: { flex: 1, overflow: 'hidden', backgroundColor: '#111' },
   scan: { position: 'absolute', left: 0, right: 0, top: 0, height: 60 },
   stages: { alignSelf: 'stretch', borderRadius: Radius.lg, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden' },
   stageRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 52, paddingHorizontal: 16 },
   stageMark: { width: 22, height: 22, alignItems: 'center', justifyContent: 'center' },
   stageDot: { width: 18, height: 18, borderRadius: 9, borderWidth: 1.5 },
-  result: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  resultText: { flex: 1, gap: 8 },
-  ready: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  doneBadge: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  facts: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  fact: { paddingHorizontal: 12, height: 32, borderRadius: Radius.pill, justifyContent: 'center' },
-  section: { gap: 12 },
-  ingredients: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  ingredient: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, height: 34, borderRadius: Radius.pill },
-  step: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  stepNo: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center', marginTop: -2 },
-  saved: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderRadius: Radius.md },
+  ready: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12, paddingHorizontal: 14, borderRadius: Radius.md },
 });

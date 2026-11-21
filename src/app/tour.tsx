@@ -1,5 +1,5 @@
-import { router } from 'expo-router';
-import { useRef, useState } from 'react';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useRef, useState, type ComponentType } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -13,57 +13,42 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PageDots } from '@/components/tour/page-dots';
-import { BookArt, CookArt, PantryArt, VideoArt } from '@/components/tour/tour-art';
+import { BookArt, ChefArt, CookArt, PantryArt, VideoArt } from '@/components/tour/tour-art';
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
 import { Radius, ScreenPadding, TouchSize } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { openSignIn, useAppConfig } from '@/lib/access';
 import { upperTr } from '@/lib/format';
 import { tourStorage } from '@/lib/token-storage';
 
-const PAGES = [
-  {
-    kicker: 'Elindekilerle tarif',
-    title: 'Buzdolabında ne varsa yaz',
-    text: 'Birkaç kısa soruyu cevapla, sana uygun bir tarif hazırlansın. Alerjilerin ve tercihlerin her zaman dikkate alınır.',
-    Art: PantryArt,
-  },
-  {
-    kicker: 'Videodan tarife',
-    title: 'Videoyu tarife çevir',
-    text: 'Beğendiğin yemek videosunun linkini kopyala, alttaki “Ekle” düğmesine bas ve yapıştır. Malzemeler ve adımlar düzenli bir tarife dönüşür.',
-    Art: VideoArt,
-  },
-  {
-    kicker: 'Adım adım pişir',
-    title: 'Mutfakta yanında',
-    text: '“Pişirmeye başla”ya bas; her adım büyük yazıyla gelir. Süreli adımlarda zamanlayıcı kur, süre dolunca alarm çalar.',
-    Art: CookArt,
-  },
-  {
-    kicker: 'Tariflerin',
-    title: 'Hepsi tek yerde',
-    text: 'Kaydettiğin ve hazırladığın tarifler “Tariflerim”de durur. Takıldığın yerde tarif hakkında soru sorabilirsin.',
-    Art: BookArt,
-  },
-];
+/** The app's illustrations a page can ask for by name (billing.onboarding.welcome.pages[].art). */
+const ART: Record<string, ComponentType> = { video: VideoArt, chef: ChefArt, pantry: PantryArt, cook: CookArt, book: BookArt };
 
 /**
- * A one-time tour after onboarding (and from Profil → "Uygulamayı tanı"): four quiet pages that show
- * what the app does. Swipe or tap "Devam"; "Atla" is always there.
+ * The welcome: a few short pages on what to do first (turn a video into a recipe, find a favourite
+ * chef's recipes, get a recipe from what is at home). It opens once, after the paywall that ends
+ * onboarding is left, and again from Profil → "Uygulamayı tanı". Swipe or tap the button; the way
+ * out at the top is always there. The pages and the wording come from the server.
  */
 export default function TourScreen() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const scroller = useRef<ScrollViewInstance>(null);
+  const { then } = useLocalSearchParams<{ then?: string }>();
+  const welcome = useAppConfig().billing.onboarding.welcome;
+  const pages = welcome.pages;
   const [page, setPage] = useState(0);
-  const last = page === PAGES.length - 1;
+  const last = page >= pages.length - 1;
 
   const close = () => {
     tourStorage.set('1').catch(() => {});
     if (router.canGoBack()) router.back();
     else router.replace('/');
+    // Somebody who paid as a guest is offered an account once the welcome is over, so the
+    // subscription is not tied to this phone alone.
+    if (then === 'signin') setTimeout(() => openSignIn('purchase'), 600);
   };
   const goTo = (i: number) => {
     scroller.current?.scrollTo({ x: i * width, animated: true });
@@ -78,11 +63,11 @@ export default function TourScreen() {
           onPress={close}
           hitSlop={6}
           accessibilityRole="button"
-          accessibilityLabel="Atla"
+          accessibilityLabel={welcome.skip}
           accessibilityHint="Tanıtımı kapatır"
           style={({ pressed }) => [styles.skip, pressed && { backgroundColor: colors.surfaceMuted }]}>
           <Text variant="headline" color="textSecondary">
-            Atla
+            {welcome.skip}
           </Text>
         </Pressable>
       </View>
@@ -94,28 +79,49 @@ export default function TourScreen() {
         showsHorizontalScrollIndicator={false}
         onMomentumScrollEnd={onScrollEnd}
         style={styles.flex}>
-        {PAGES.map(({ kicker, title, text, Art }, i) => (
-          <ScrollView key={title} style={{ width }} contentContainerStyle={styles.page} showsVerticalScrollIndicator={false}>
-            <Art />
-            <View style={styles.copy}>
-              <Text variant="overline" color="accentText">
-                {upperTr(`${i + 1} / ${PAGES.length} · ${kicker}`)}
-              </Text>
-              <Text variant="display" accessibilityRole="header">
-                {title}
-              </Text>
-              <Text variant="body" color="textSecondary">
-                {text}
-              </Text>
-            </View>
-          </ScrollView>
-        ))}
+        {pages.map(({ art, kicker, title, text, steps }, i) => {
+          const Art = ART[art];
+          return (
+            <ScrollView key={`${i}-${title}`} style={{ width }} contentContainerStyle={styles.page} showsVerticalScrollIndicator={false}>
+              {Art ? <Art /> : null}
+              <View style={styles.copy}>
+                <Text variant="overline" color="accentText">
+                  {upperTr(`${i + 1} / ${pages.length} · ${kicker}`)}
+                </Text>
+                <Text variant="display" accessibilityRole="header">
+                  {title}
+                </Text>
+                {text ? (
+                  <Text variant="body" color="textSecondary">
+                    {text}
+                  </Text>
+                ) : null}
+                {steps?.length ? (
+                  <View style={styles.steps}>
+                    {steps.map((step, n) => (
+                      <View key={step} style={styles.step} accessible accessibilityLabel={`${n + 1}. ${step}`}>
+                        <View style={[styles.stepNo, { backgroundColor: colors.accentSoft }]}>
+                          <Text variant="footnote" weight="700" color="accentText">
+                            {n + 1}
+                          </Text>
+                        </View>
+                        <Text variant="body" color="textSecondary" style={styles.flex}>
+                          {step}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                ) : null}
+              </View>
+            </ScrollView>
+          );
+        })}
       </ScrollView>
 
       <View style={[styles.bottom, { paddingBottom: insets.bottom + 12 }]}>
-        <PageDots count={PAGES.length} index={page} />
+        <PageDots count={pages.length} index={page} />
         <Button
-          title={last ? 'Başlayalım' : 'Devam'}
+          title={last ? welcome.cta : welcome.next}
           trailingIcon={last ? null : 'arrow-forward'}
           onPress={last ? close : () => goTo(page + 1)}
         />
@@ -138,5 +144,8 @@ const styles = StyleSheet.create({
   },
   page: { paddingHorizontal: ScreenPadding, paddingTop: 8, paddingBottom: 16, gap: 28 },
   copy: { gap: 10 },
+  steps: { gap: 12, marginTop: 4 },
+  step: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  stepNo: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   bottom: { paddingHorizontal: ScreenPadding, gap: 18, paddingTop: 12 },
 });

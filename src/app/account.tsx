@@ -28,8 +28,8 @@ const PLAN_NAMES: Record<string, string> = { monthly: 'Aylık', yearly: 'Yıllı
 const METERS: { key: LimitKey; label: string }[] = [
   { key: 'recipe_view', label: 'Tarif açma' },
   { key: 'import', label: 'Videodan tarif' },
-  { key: 'ai_recipe', label: 'AI Şef tarifi' },
-  { key: 'ai_chat', label: 'AI Şefe soru' },
+  { key: 'ai_recipe', label: 'Yapay Zeka Şefi tarifi' },
+  { key: 'ai_chat', label: 'Yapay Zeka Şefi’ne soru' },
 ];
 
 const day = (iso: string) => new Date(iso).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });

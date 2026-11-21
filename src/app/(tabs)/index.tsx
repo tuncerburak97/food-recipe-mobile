@@ -19,6 +19,7 @@ import { SectionHeader } from '@/components/ui/section-header';
 import { SkeletonBlock, SkeletonPulse } from '@/components/ui/skeleton';
 import { Radius, ScreenPadding } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { useAppConfig, welcomeIsQueued } from '@/lib/access';
 import { describeError } from '@/lib/api';
 import { useCategories, useCreators, useFeed, useGenerations, useMe } from '@/lib/queries';
 import { tourStorage } from '@/lib/token-storage';
@@ -41,15 +42,20 @@ export default function HomeScreen() {
   const meQuery = useMe();
   const me = meQuery.data;
 
-  // The app tour is shown once, the first time Home opens (right after onboarding).
+  // The welcome is shown once. Right after onboarding it follows the paywall by itself; this is
+  // for somebody who has not seen it by the next time Home opens.
+  const welcomeOn = useAppConfig().billing.onboarding.welcome.enabled;
   useEffect(() => {
+    if (!welcomeOn || welcomeIsQueued()) return;
     tourStorage
       .get()
       .then((seen) => {
-        // Not when the app was opened by a share: the user came to add a recipe, the tour can wait.
+        // Not when the app was opened by a share: the user came to add a recipe, the welcome can wait.
         if (seen !== '1' && !wasSharedThisSession()) router.push('/tour');
       })
       .catch(() => {});
+    // Once, when Home opens.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const generations = useGenerations();

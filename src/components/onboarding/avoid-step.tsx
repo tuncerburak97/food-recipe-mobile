@@ -35,7 +35,7 @@ export function AvoidStep({ profile, onChange, onNext, kicker }: Props) {
         <EmojiChips options={DIET} values={profile.diet} onToggle={(v) => onChange({ diet: toggle(profile.diet, v as Diet) })} />
       </Section>
       <Section title="Alerji ya da hassasiyet" delay={160}>
-        <QuestionNote icon="shield-checkmark" text="AI Şef bu malzemeleri tariflerinde hiç kullanmaz." />
+        <QuestionNote icon="shield-checkmark" text="Yapay Zeka Şefi bu malzemeleri tariflerinde hiç kullanmaz." />
         <EmojiChips options={ALLERGY} values={profile.allergies} onToggle={(v) => onChange({ allergies: toggle(profile.allergies, v as Allergy) })} />
       </Section>
       <Section title="Sevmediklerin" delay={240}>

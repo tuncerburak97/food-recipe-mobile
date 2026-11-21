@@ -27,7 +27,7 @@ import { appleAvailable, googleAvailable } from '@/lib/social-auth';
 
 const POINTS: { icon: IconName; title: string; text: string }[] = [
   { icon: 'logo-instagram', title: 'Instagram’dan tarife', text: 'Beğendiğin yemek videosunu paylaş; malzemeler ve adımlar hazır gelsin.' },
-  { icon: 'sparkles-outline', title: 'AI Şef yanında', text: 'Dolabındakilerle tarif yazar, takıldığın her soruyu cevaplar.' },
+  { icon: 'sparkles-outline', title: 'Yapay Zeka Şefi yanında', text: 'Dolabındakilerle tarif yazar, takıldığın her soruyu cevaplar.' },
   { icon: 'mic-outline', title: 'Elin hamurdayken sesle pişir', text: '“Sonraki”, “tekrar” de; adımlar videodaki anıyla birlikte gelsin.' },
 ];
 
@@ -48,7 +48,7 @@ export function HeroStep({ onStart }: { onStart: () => void }) {
             Videodaki yemek, saniyeler içinde senin tarifin
           </Text>
           <Text variant="body" color="textSecondary">
-            Instagram’da ve YouTube’da gördüğün tarifleri kaydet, AI Şef’le kendine uyarla, adım adım pişir.
+            Instagram’da ve YouTube’da gördüğün tarifleri kaydet, Yapay Zeka Şefi’yle kendine uyarla, adım adım pişir.
           </Text>
         </Animated.View>
         <View style={styles.points}>
