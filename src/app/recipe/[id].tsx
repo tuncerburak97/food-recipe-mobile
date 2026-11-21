@@ -35,7 +35,7 @@ import { Text } from '@/components/ui/text';
 import { categoryLabel } from '@/constants/categories';
 import { Radius, ScreenPadding } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { limitDetails, useRefreshAccess } from '@/lib/access';
+import { limitDetails, openPaywall, useRefreshAccess } from '@/lib/access';
 import { useRecipeTracking } from '@/lib/analytics';
 import { sourceName } from '@/lib/instagram';
 import { describeError, isLimitError } from '@/lib/api';
@@ -90,9 +90,15 @@ export default function RecipeScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchedAt]);
 
-  // Today's free recipes are used up: the recipe stays closed (its photo and name still show when
-  // the list already had them).
+  // The free recipes are used up: the paywall opens at once, saying when they come back, and the
+  // recipe stays closed behind it (its photo and name still show when the list already had them).
   const locked = isLimitError(query.error);
+  const lockedAt = locked ? query.errorUpdatedAt : 0;
+  useEffect(() => {
+    if (lockedAt > 0) openPaywall('recipe_view', limitDetails(query.error));
+    // Once per refusal: `query.error` is the refusal `lockedAt` belongs to.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lockedAt]);
   const entry = query.data;
   if (!entry) {
     const err = describeError(query.error);

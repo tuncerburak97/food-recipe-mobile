@@ -14,7 +14,7 @@ import { Tag } from '@/components/ui/tag';
 import { Text } from '@/components/ui/text';
 import { ScreenPadding } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { accessApi, openPaywall, usePremium, type LimitKey, type Subscription } from '@/lib/access';
+import { accessApi, isLimited, openPaywall, usePremium, type LimitKey, type Subscription } from '@/lib/access';
 import { track } from '@/lib/analytics';
 import { describeError } from '@/lib/api';
 import { ensurePurchases, manageSubscriptionUrl, purchasesBlocked, restore } from '@/lib/purchases';
@@ -217,9 +217,12 @@ export default function AccountScreen() {
                 ? `Her gece yenilenir. Giriş yapınca günde ${access.sign_in_limits.recipe_view < 0 ? 'sınırsız' : access.sign_in_limits.recipe_view} tarif açabilirsin.`
                 : 'Her gece yenilenir. Kendi defterindeki tarifler her zaman açıktır.'
             }>
-            {METERS.filter((m) => (access.usage[m.key]?.limit ?? -1) >= 0).map((m, i) => {
+            {METERS.filter((m) => access.usage[m.key] != null && isLimited(access.usage[m.key]!)).map((m, i) => {
               const u = access.usage[m.key]!;
-              return <ListRow key={m.key} first={i === 0} title={m.label} value={`${u.remaining} / ${u.limit} kaldı`} />;
+              const total = u.total_limit ?? -1;
+              // A total is what is left for good; it is said under today's count, or alone without one.
+              const left = total >= 0 ? `Toplam ${Math.max(0, total - (u.total_used ?? 0))} / ${total} hak kaldı` : undefined;
+              return <ListRow key={m.key} first={i === 0} title={m.label} subtitle={u.limit >= 0 ? left : undefined} value={u.limit >= 0 ? `${u.remaining} / ${u.limit} kaldı` : left} />;
             })}
           </ListGroup>
         ) : null}

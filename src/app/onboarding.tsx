@@ -21,6 +21,7 @@ import {
 } from '@/components/onboarding/steps';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/hooks/use-theme';
+import { useAppConfig } from '@/lib/access';
 import { emptyProfile, personaFor, type CookProfile } from '@/lib/profile';
 import { tourStorage } from '@/lib/token-storage';
 import { useSession } from '@/store/session';
@@ -58,8 +59,11 @@ export default function OnboardingScreen() {
     Keyboard.dismiss();
     setIndex(Math.max(0, Math.min(STEPS.length - 1, to)));
   };
-  const next = () => goTo(index + 1);
-  const back = () => goTo(index - 1);
+  // The live demo is a server setting (billing.onboarding.demo.enabled): switched off, it is passed over.
+  const demoOn = useAppConfig().billing.onboarding.demo.enabled;
+  const passed = (i: number) => STEPS[i] === 'demo' && !demoOn;
+  const next = () => goTo(passed(index + 1) ? index + 2 : index + 1);
+  const back = () => goTo(passed(index - 1) ? index - 2 : index - 1);
 
   const answerSingle = (field: SingleField, value: string | number) => {
     setProfile((p) => ({ ...p, [field]: value }) as CookProfile);

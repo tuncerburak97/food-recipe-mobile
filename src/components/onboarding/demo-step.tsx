@@ -24,6 +24,7 @@ import { SkeletonBlock, SkeletonPulse } from '@/components/ui/skeleton';
 import { Text } from '@/components/ui/text';
 import { Radius, ScreenPadding } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { useAppConfig } from '@/lib/access';
 import { api } from '@/lib/api';
 import { formatAmount, formatMinutes, ingredientCount, servingsText, totalMinutes, upperTr } from '@/lib/format';
 import type { Recipe, RecipeEntry } from '@/lib/types';
@@ -35,14 +36,20 @@ const STAGES = ['Video izleniyor', 'Videoda anlatılanlar dinleniyor', 'Malzemel
 
 type Phase = 'pick' | 'working' | 'done';
 
-/** Videos from Instagram that already have a good recipe: Turkish first, with enough ingredients. */
-function pickSamples(items: RecipeEntry[]): RecipeEntry[] {
-  const good = items.filter((e) => e.origin === 'instagram' && e.source?.shortcode && e.imageUrl && ingredientCount(e.recipe) >= 5);
-  const ranked = [...good.filter((e) => e.recipe.language === 'tr'), ...good.filter((e) => e.recipe.language !== 'tr')];
+/**
+ * Videos from Instagram that already have a good recipe. The ones the server names (links or
+ * shortcodes, in its order) come first; the rest are Turkish first, with enough ingredients.
+ */
+function pickSamples(items: RecipeEntry[], wanted: string[]): RecipeEntry[] {
+  const usable = items.filter((e) => e.origin === 'instagram' && e.source?.shortcode && e.imageUrl);
+  const named = wanted.map((w) => usable.find((e) => w.includes(e.source!.shortcode))).filter((e): e is RecipeEntry => e != null);
+  const good = usable.filter((e) => !named.includes(e) && ingredientCount(e.recipe) >= 5);
+  const ranked = [...named, ...good.filter((e) => e.recipe.language === 'tr'), ...good.filter((e) => e.recipe.language !== 'tr')];
   // One video per account first, so the samples look like different creators.
   const owners = new Set<string>();
   const varied = ranked.filter((e) => {
     const owner = e.source?.ownerUsername ?? '';
+    if (named.includes(e)) return true;
     if (owners.has(owner)) return false;
     owners.add(owner);
     return true;
@@ -51,15 +58,18 @@ function pickSamples(items: RecipeEntry[]): RecipeEntry[] {
 }
 
 /**
- * Onboarding's first real moment: the user picks a sample Instagram video and watches it turn into
- * the recipe the app made from it. The recipe is then added to the user's book, so "Tariflerim" is
- * not empty on the first visit.
+ * Onboarding's first real moment: the user tries the app with a sample link. They pick a sample
+ * Instagram video and watch it turn into the recipe the app made from it. The recipe is then added
+ * to the user's book, so "Tariflerim" is not empty on the first visit. The wording and which
+ * videos are offered come from the server (billing.onboarding.demo).
  */
 export function DemoStep({ onNext }: { onNext: () => void }) {
   const insets = useSafeAreaInsets();
+  const { demo } = useAppConfig().billing.onboarding;
+  const wanted = demo.samples.join('|');
   const samples = useQuery({
-    queryKey: ['onboarding', 'samples'],
-    queryFn: async () => pickSamples((await api.listRecipes({ scope: 'all', limit: 60 })).items),
+    queryKey: ['onboarding', 'samples', wanted],
+    queryFn: async () => pickSamples((await api.listRecipes({ scope: 'all', limit: 60 })).items, demo.samples),
     staleTime: 10 * 60_000,
   });
   const [chosen, setChosen] = useState(0);
@@ -107,10 +117,10 @@ export function DemoStep({ onNext }: { onNext: () => void }) {
                 {upperTr('Canlı deneme · 20 saniye')}
               </Text>
               <Text variant="display" accessibilityRole="header">
-                Önce sihri kendin gör
+                {demo.title}
               </Text>
               <Text variant="body" color="textSecondary">
-                Instagram’dan ya da YouTube’dan bir yemek videosu seç. Malzemeleri ve adımlarıyla tarife dönüşmesini izle.
+                {demo.subtitle}
               </Text>
             </View>
             {samples.isPending ? (
@@ -122,6 +132,7 @@ export function DemoStep({ onNext }: { onNext: () => void }) {
                     <ReelCard key={e.id} entry={e} index={i} selected={i === chosen} onPress={() => setChosen(i)} />
                   ))}
                 </View>
+                {entry?.source ? <SampleLink shortcode={entry.source.shortcode} /> : null}
                 <Outcome />
               </>
             ) : (
@@ -138,14 +149,33 @@ export function DemoStep({ onNext }: { onNext: () => void }) {
 
       <StickyFooter style={styles.footer}>
         {phase === 'pick' && list.length > 0 && (
-          <Button title="Bu videoyu tarife çevir" icon="sparkles" onPress={run} disabled={!entry} />
+          <Button title={demo.cta} icon="sparkles" onPress={run} disabled={!entry} />
         )}
         {phase === 'pick' && (
-          <Button title={list.length || samples.isPending ? 'Şimdilik geç' : 'Devam'} variant={list.length || samples.isPending ? 'ghost' : 'primary'} size="md" onPress={onNext} />
+          <Button title={list.length || samples.isPending ? demo.skip : 'Devam'} variant={list.length || samples.isPending ? 'ghost' : 'primary'} size="md" onPress={onNext} />
         )}
         {phase === 'working' && <Button title="Tarif hazırlanıyor" loading disabled onPress={() => {}} />}
         {phase === 'done' && <Button title="Harika! Şimdi seni tanıyalım" trailingIcon="arrow-forward" onPress={onNext} />}
       </StickyFooter>
+    </View>
+  );
+}
+
+/** The chosen sample as the link the user would paste: what goes in is a link, what comes out a recipe. */
+function SampleLink({ shortcode }: { shortcode: string }) {
+  const { colors } = useTheme();
+  const link = `instagram.com/reel/${shortcode}`;
+  return (
+    <View style={[styles.link, { backgroundColor: colors.surface, borderColor: colors.border }]} accessible accessibilityLabel={`Örnek link: ${link}`}>
+      <Icon name="link-outline" size={18} color={colors.textSecondary} />
+      <View style={styles.flex}>
+        <Text variant="caption" color="textTertiary">
+          {upperTr('Örnek link')}
+        </Text>
+        <Text variant="subhead" numberOfLines={1}>
+          {link}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -407,6 +437,7 @@ const styles = StyleSheet.create({
   header: { gap: 10 },
   footer: { borderTopWidth: 0, gap: 6 },
   samples: { flexDirection: 'row', gap: 10 },
+  link: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 52, paddingHorizontal: 14, borderRadius: Radius.md, borderWidth: StyleSheet.hairlineWidth },
   outcome: { borderRadius: Radius.lg, padding: 16, gap: 10 },
   outcomeRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   outcomeEmoji: { fontSize: 18, lineHeight: 22 },
