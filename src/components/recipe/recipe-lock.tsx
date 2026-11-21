@@ -5,17 +5,21 @@ import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { openPaywall, openSignIn, useAppConfig, type LimitDetails } from '@/lib/access';
+import { limitPlacement, openPaywall, openSignIn, placementText, useAppConfig, type LimitDetails } from '@/lib/access';
 
 /**
- * Shown in place of a recipe's ingredients and steps when today's free recipes are used up: what
- * happened, when it opens again, and the two ways on (sign in for more when the user is a guest,
- * Premium for no limit). The photo and the title above it stay, so the user knows what is behind it.
+ * Shown in place of a recipe's ingredients and steps when the free recipes are used up (the
+ * paywall has already opened over it once): what happened, when it opens again, and the two ways
+ * on (sign in for more when the user is a guest, Premium for no limit). The photo and the title
+ * above it stay, so the user knows what is behind it.
  */
 export function RecipeLock({ details }: { details: LimitDetails | null }) {
   const { colors } = useTheme();
   const { billing } = useAppConfig();
-  const text = billing.paywall.placements.recipe_view ?? { title: 'Bugünlük tarif hakkın doldu', subtitle: 'Yarın yeniden açılır.' };
+  const total = details?.period === 'total';
+  const known = placementText(billing.paywall, limitPlacement('recipe_view', details?.period));
+  // A server that sent no wording for this limit: say it in the app's own words.
+  const text = billing.paywall.placements.recipe_view ? known : { title: 'Bugünlük tarif hakkın doldu', subtitle: 'Yarın yeniden açılır.' };
   const more = details?.sign_in_limit;
   const canSignIn = details?.tier === 'guest' && more != null && (more < 0 || more > details.limit);
 
@@ -32,7 +36,7 @@ export function RecipeLock({ details }: { details: LimitDetails | null }) {
       </Text>
       {details ? (
         <Text variant="footnote" color="textTertiary" align="center">
-          Bugün {details.limit} tarif açtın · Gece yarısı yenilenir
+          {total ? `Ücretsiz ${details.limit} tarifin hepsini açtın` : `Bugün ${details.limit} tarif açtın · Gece yarısı yenilenir`}
         </Text>
       ) : null}
       <View style={styles.actions}>

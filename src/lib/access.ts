@@ -9,10 +9,20 @@ import { useSession } from '@/store/session';
 // The app only draws what GET /api/v1/app/config and GET /api/v1/me/access say, so plans, limits
 // and wording change without an app release.
 
-/** What can be limited per day. Also the paywall placement of that limit. */
+/** What can be limited, per day and in total. Also the paywall placement of that limit. */
 export type LimitKey = 'recipe_view' | 'import' | 'ai_recipe' | 'ai_chat' | 'voice_recipe' | 'adapt';
-/** Why the paywall opened: a limit, or a place in the app. */
-export type Placement = LimitKey | 'settings' | 'home' | 'onboarding';
+/** The allowance a limit counts in: a day's (starts again at midnight) or the total one (never does). */
+export type LimitPeriod = 'day' | 'total';
+/** Why the paywall opened: a limit ("<key>_total" when the total ran out), or a place in the app. */
+export type Placement = LimitKey | `${LimitKey}_total` | 'settings' | 'home' | 'onboarding';
+
+/** The paywall's header for one reason it opened; icon and eyebrow say what the user was doing. */
+export interface PlacementText {
+  icon?: string;
+  eyebrow?: string;
+  title: string;
+  subtitle: string;
+}
 
 export interface Plan {
   id: string;
@@ -35,10 +45,32 @@ export interface PaywallTexts {
   cta: string;
   /** Used when the chosen plan starts with a free trial; "{days}". */
   cta_trial: string;
-  /** "{days}", "{price}", "{period}". */
+  /** The reassurance under the buy button. */
+  trust: string;
+  /** On the plan that costs less per month; "{percent}" comes from the store's prices. */
+  savings_badge: string;
+  /** The trial as a timeline; "{days}", "{price}", "{period}". */
+  trial_steps: { title: string; text: string }[];
+  /** The same in one sentence; "{days}", "{price}", "{period}". */
   trial_note: string;
+  /** The way out of a paywall that cannot be closed, and of one that can. */
+  free_cta: string;
+  later_cta: string;
+  /** Placements whose paywall has no close button: the only way out is `free_cta`. */
+  hard: string[];
   footnote: string;
-  placements: Partial<Record<string, { title: string; subtitle: string }>>;
+  placements: Partial<Record<string, PlacementText>>;
+}
+
+/** The "try it with a sample video" step of onboarding. */
+export interface DemoTexts {
+  enabled: boolean;
+  title: string;
+  subtitle: string;
+  cta: string;
+  skip: string;
+  /** Video links or shortcodes whose recipes the server already has; empty lets the app pick. */
+  samples: string[];
 }
 
 export interface BillingConfig {
@@ -57,6 +89,7 @@ export interface BillingConfig {
     home_banner_title: string;
     home_banner_text: string;
   };
+  onboarding: { demo: DemoTexts };
   account: { title: string; subtitle: string; reasons: string[]; sharing_needs_sign_in: boolean };
   legal: { terms_url: string; privacy_url: string };
 }
@@ -72,9 +105,15 @@ export interface AppConfig {
 export interface Usage {
   /** Per day; -1 is unlimited. */
   limit: number;
+  /** Today. */
   used: number;
-  /** Left today; -1 is unlimited. */
+  /** What can still be used right now (the smaller of today's rest and the total's); -1 is unlimited. */
   remaining: number;
+  /** Over the life of the account; -1 is unlimited. Absent on a server from before totals. */
+  total_limit?: number;
+  total_used?: number;
+  /** The allowance that ends first: what the app talks about. */
+  period?: LimitPeriod;
 }
 
 export interface Subscription {
@@ -107,10 +146,13 @@ export interface Access {
 /** Sent with a LIMIT_REACHED error (ApiError.details). */
 export interface LimitDetails {
   feature: LimitKey;
+  /** The allowance that ran out; `limit` and `used` are of it. Absent means a day's. */
+  period?: LimitPeriod;
   limit: number;
   used: number;
   tier: Access['tier'];
-  resets_at: string;
+  /** When a day's allowance starts again; absent for a total. */
+  resets_at?: string;
   /** Guests: the limit after signing in, when that is more. */
   sign_in_limit?: number;
 }
@@ -131,8 +173,33 @@ export const FALLBACK_CONFIG: AppConfig = {
     entitlement: 'premium',
     offering: '',
     plans: [],
-    paywall: { title: 'Tarif Defteri Premium', subtitle: '', benefits: [], cta: 'Premium’a geç', cta_trial: '{days} gün ücretsiz dene', trial_note: '', footnote: '', placements: {} },
+    paywall: {
+      title: 'Tarif Defteri Premium',
+      subtitle: '',
+      benefits: [],
+      cta: 'Premium’a geç',
+      cta_trial: '{days} gün ücretsiz dene',
+      trust: '',
+      savings_badge: '',
+      trial_steps: [],
+      trial_note: '',
+      free_cta: 'Ücretsiz devam et',
+      later_cta: 'Şimdilik kalsın',
+      hard: [],
+      footnote: '',
+      placements: {},
+    },
     nudges: { usage_meter_below: 0, sign_in_after_saves: 0, paywall_after_onboarding: false, home_banner_after_days: 0, home_banner_title: '', home_banner_text: '' },
+    onboarding: {
+      demo: {
+        enabled: true,
+        title: 'Önce sihri kendin gör',
+        subtitle: 'Instagram’dan ya da YouTube’dan bir yemek videosu seç. Malzemeleri ve adımlarıyla tarife dönüşmesini izle.',
+        cta: 'Bu videoyu tarife çevir',
+        skip: 'Şimdilik geç',
+        samples: [],
+      },
+    },
     account: {
       title: 'Defterin seninle gelsin',
       subtitle: 'Giriş yap, tariflerin kaybolmasın ve her cihazında aynı defter açılsın.',
@@ -158,8 +225,16 @@ export const accessApi = {
         ...FALLBACK_CONFIG.billing,
         ...b,
         plans: b.plans ?? [],
-        paywall: { ...FALLBACK_CONFIG.billing.paywall, ...b.paywall, benefits: b.paywall?.benefits ?? [], placements: b.paywall?.placements ?? {} },
+        paywall: {
+          ...FALLBACK_CONFIG.billing.paywall,
+          ...b.paywall,
+          benefits: b.paywall?.benefits ?? [],
+          trial_steps: b.paywall?.trial_steps ?? [],
+          hard: b.paywall?.hard ?? [],
+          placements: b.paywall?.placements ?? {},
+        },
         nudges: { ...FALLBACK_CONFIG.billing.nudges, ...b.nudges },
+        onboarding: { demo: { ...FALLBACK_CONFIG.billing.onboarding.demo, ...b.onboarding?.demo, samples: b.onboarding?.demo?.samples ?? [] } },
         account: { ...FALLBACK_CONFIG.billing.account, ...b.account, reasons: b.account?.reasons ?? [] },
         legal: { ...FALLBACK_CONFIG.billing.legal, ...b.legal },
       },
@@ -209,13 +284,31 @@ export function usePremium() {
     /** Limits and the paywall are on for this user. */
     on,
     premium: !!access?.premium,
-    /** Left today of a limited thing; null when it is unlimited or not known yet. */
+    /** What is left right now of a limited thing; null when it is unlimited or not known yet. */
     remaining(key: LimitKey): number | null {
       if (!on) return null;
       const u = access?.usage[key];
-      return u && u.limit >= 0 ? u.remaining : null;
+      return u && isLimited(u) ? u.remaining : null;
     },
   };
+}
+
+/** Whether a limit stops anyone: per day, in total, or both. */
+export function isLimited(u: Usage): boolean {
+  return u.limit >= 0 || (u.total_limit ?? -1) >= 0;
+}
+
+/** The paywall placement of a used-up limit: its own, or "<key>_total" when the total ran out. */
+export function limitPlacement(key: LimitKey, period?: LimitPeriod): Placement {
+  return period === 'total' ? `${key}_total` : key;
+}
+
+/**
+ * The paywall's header for a placement. A total without wording of its own uses its key's, and a
+ * placement the server does not know uses the paywall's general title.
+ */
+export function placementText(texts: PaywallTexts, placement: string): PlacementText {
+  return texts.placements[placement] ?? texts.placements[placement.replace(/_total$/, '')] ?? { title: texts.title, subtitle: texts.subtitle };
 }
 
 /** Re-reads the allowances after something that uses one (opening a recipe, an import...). */
@@ -227,8 +320,9 @@ export function useRefreshAccess() {
 let lastPaywallAt = 0;
 
 /**
- * Opens the paywall. placement decides its headline: the limit that was reached, or where in the
- * app it was opened from. Several requests failing at once open it once.
+ * Opens the paywall. placement decides its header: the limit that was reached (pass its details,
+ * so a used-up total is told from a used-up day), or where in the app it was opened from. Several
+ * requests failing at once open it once.
  */
 export function openPaywall(placement: Placement, details?: LimitDetails | null) {
   const now = Date.now();
@@ -237,7 +331,7 @@ export function openPaywall(placement: Placement, details?: LimitDetails | null)
   router.push({
     pathname: '/paywall',
     params: {
-      placement,
+      placement: details ? limitPlacement(details.feature, details.period) : placement,
       ...(details?.sign_in_limit != null ? { signInLimit: String(details.sign_in_limit), limit: String(details.limit) } : {}),
     },
   });
@@ -256,19 +350,21 @@ export function openSignIn(reason?: 'share' | 'limit' | 'save' | 'purchase') {
 export function useLimitGate(key: LimitKey): boolean {
   const { on, premium, access } = usePremium();
   const usage = access?.usage[key];
-  const out = on && !premium && usage != null && usage.limit >= 0 && usage.remaining <= 0;
-  const limit = usage?.limit ?? 0;
-  const used = usage?.used ?? 0;
+  const out = on && !premium && usage != null && isLimited(usage) && usage.remaining <= 0;
+  const period: LimitPeriod = usage?.period ?? 'day';
+  const limit = (period === 'total' ? usage?.total_limit : usage?.limit) ?? 0;
+  const used = (period === 'total' ? usage?.total_used : usage?.used) ?? 0;
   const tier = access?.tier ?? 'guest';
-  const resetsAt = access?.resets_at ?? '';
-  const signInLimit = access?.sign_in_limits?.[key];
+  const resetsAt = period === 'day' ? access?.resets_at : undefined;
+  // Signing in is only worth offering for a day's allowance: that is what `sign_in_limits` holds.
+  const signInLimit = period === 'day' ? access?.sign_in_limits?.[key] : undefined;
   useEffect(() => {
-    if (out) openPaywall(key, { feature: key, limit, used, tier, resets_at: resetsAt, sign_in_limit: signInLimit });
-  }, [out, key, limit, used, tier, resetsAt, signInLimit]);
+    if (out) openPaywall(key, { feature: key, period, limit, used, tier, resets_at: resetsAt, sign_in_limit: signInLimit });
+  }, [out, key, period, limit, used, tier, resetsAt, signInLimit]);
   return out;
 }
 
-// An action that hit a daily limit (an import, a question, a new AI recipe) opens the paywall for it.
+// An action that hit a limit (an import, a question, a new AI recipe) opens the paywall for it at once.
 onLimitReached((err) => {
   const details = limitDetails(err);
   openPaywall(details?.feature ?? 'settings', details);

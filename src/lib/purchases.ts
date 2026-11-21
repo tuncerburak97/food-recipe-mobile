@@ -85,6 +85,8 @@ export interface StorePlan {
   price: string;
   /** Price of one month of this plan (a yearly plan divided by 12), formatted like `price`. */
   perMonth: string | null;
+  /** The same as a number, for a yearly and a monthly plan, to say how much one saves over another. */
+  monthly: number | null;
   /** Days of free trial the store offers this user; 0 when there is none or it was used. */
   trialDays: number;
 }
@@ -136,11 +138,13 @@ export async function loadStorePlans(config: AppConfig): Promise<StorePlan[]> {
     const mayTry = status == null || status === INTRO_ELIGIBILITY_STATUS.INTRO_ELIGIBILITY_STATUS_ELIGIBLE || status === INTRO_ELIGIBILITY_STATUS.INTRO_ELIGIBILITY_STATUS_UNKNOWN;
     const trialDays = intro && intro.price === 0 && mayTry ? Math.round((UNIT_DAYS[intro.periodUnit] ?? 0) * intro.periodNumberOfUnits) : 0;
     const yearly = String(pkg.packageType) === 'ANNUAL' || plan.id === 'yearly';
+    const byMonth = String(pkg.packageType) === 'MONTHLY' || plan.id === 'monthly';
     return {
       plan,
       pkg,
       price: product.priceString,
       perMonth: yearly && product.price > 0 ? formatLike(product.priceString, product.price / 12) : null,
+      monthly: product.price > 0 ? (yearly ? product.price / 12 : byMonth ? product.price : null) : null,
       trialDays,
     };
   });

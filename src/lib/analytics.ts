@@ -31,6 +31,7 @@ type AnalyticsEvent =
   | 'account_deleted'
   | 'limit_reached'
   | 'paywall_viewed'
+  | 'paywall_dismissed'
   | 'purchase_started'
   | 'purchase_completed'
   | 'purchase_cancelled'

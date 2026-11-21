@@ -463,11 +463,14 @@ export function describeError(err: unknown): { title: string; message: string } 
       return { title: 'Profil bulunamadı', message: 'Bu hesaptan kayıtlı tarif yok.' };
     case 'RECIPE_NOT_FOUND':
       return { title: 'Tarif bulunamadı', message: 'Bu tarif silinmiş olabilir.' };
-    case 'LIMIT_REACHED':
+    case 'LIMIT_REACHED': {
+      // A used-up total does not come back tomorrow; only a day's allowance does.
+      const total = err instanceof ApiError && (err.details as { period?: string } | undefined)?.period === 'total';
       return {
-        title: err instanceof Error && err.message ? err.message : 'Bugünlük hakkın doldu',
-        message: 'Yarın yeniden açılır. Beklemek istemezsen Premium ile sınırsız devam edebilirsin.',
+        title: err instanceof Error && err.message ? err.message : total ? 'Ücretsiz hakların bitti' : 'Bugünlük hakkın doldu',
+        message: total ? 'Premium ile sınırsız devam edebilirsin.' : 'Yarın yeniden açılır. Beklemek istemezsen Premium ile sınırsız devam edebilirsin.',
       };
+    }
     case 'SIGN_IN_REQUIRED':
       return { title: 'Önce giriş yap', message: 'Bu özellik için Apple ya da Google ile giriş yapman yeterli.' };
     case 'SIGN_IN_INVALID':

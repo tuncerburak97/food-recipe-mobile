@@ -71,8 +71,9 @@ function RootStack() {
   }, [ready]);
 
   // A link shared on first launch waits behind onboarding; open it once the user is in: a recipe
-  // someone sent ("shared:<token>"), or a video to add. Otherwise the paywall may greet the new
-  // user once, when the server says so (off by default: people try the app first).
+  // someone sent ("shared:<token>"), or a video to add. Otherwise onboarding ends in the paywall,
+  // when the server says so: it slides over the first screen, with "continue for free" as its way
+  // out (billing.nudges.paywall_after_onboarding, billing.paywall.hard).
   const { billing } = useAppConfig();
   const greetWithPaywall = billing.enabled && billing.nudges.paywall_after_onboarding;
   const previous = useRef(status);
@@ -83,7 +84,7 @@ function RootStack() {
     const link = takePendingShare();
     if (link?.startsWith('shared:')) setTimeout(() => router.push(`/shared/${link.slice('shared:'.length)}`), 300);
     else if (link) setTimeout(() => router.push(`/import?url=${encodeURIComponent(link)}`), 300);
-    else if (greetWithPaywall) setTimeout(() => openPaywall('onboarding'), 900);
+    else if (greetWithPaywall) setTimeout(() => openPaywall('onboarding'), 350);
   }, [status, greetWithPaywall]);
 
   if (!ready) return null;
@@ -131,7 +132,7 @@ function RootStack() {
           <Stack.Screen name="agent" options={{ contentStyle: { backgroundColor: colors.surface } }} />
           <Stack.Screen name="voice-recipe" options={{ presentation: 'modal', gestureEnabled: false, contentStyle: { backgroundColor: colors.surface } }} />
           <Stack.Screen name="account" options={{ contentStyle: { backgroundColor: colors.surface } }} />
-          <Stack.Screen name="paywall" options={{ presentation: 'modal', contentStyle: { backgroundColor: colors.surface } }} />
+          <Stack.Screen name="paywall" options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom', contentStyle: { backgroundColor: colors.surface } }} />
           <Stack.Screen name="shared/[token]" options={{ presentation: 'modal', contentStyle: { backgroundColor: colors.surface } }} />
           <Stack.Screen name="sign-in" options={{ presentation: 'formSheet', sheetAllowedDetents: 'fitToContents', sheetGrabberVisible: true, sheetCornerRadius: 28, contentStyle: { backgroundColor: colors.surface } }} />
         </Stack.Protected>
