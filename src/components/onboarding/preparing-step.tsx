@@ -43,7 +43,7 @@ function itemsFor(p: CookProfile): string[] {
   return [
     household ? `Porsiyonlar ${household} için ayarlanıyor` : 'Porsiyonlar ayarlanıyor',
     !minutes ? 'Vaktine uygun tarifler seçiliyor' : minutes < 60 ? `${minutes} dakikaya sığan tarifler seçiliyor` : 'Uzun ve keyifli tarifler de seçiliyor',
-    allergy ? `${capitalize(allergy)} her tarifte gözetilecek` : diet ? `${diet} beslenmen AI Şef’e öğretiliyor` : 'AI Şef damak zevkini öğreniyor',
+    allergy ? `${capitalize(allergy)} her tarifte gözetilecek` : diet ? `${diet} beslenmen Yapay Zeka Şefi’ne öğretiliyor` : 'Yapay Zeka Şefi damak zevkini öğreniyor',
     cuisines ? `${cuisines} mutfağından öneriler hazırlanıyor` : 'Sana özel öneriler hazırlanıyor',
   ];
 }
@@ -142,7 +142,7 @@ export function PreparingStep({ name, profile, onFinish }: Props) {
         ) : (
           <Animated.View key="working" entering={FadeIn.duration(300)} style={styles.copy}>
             <Text variant="overline" color="textTertiary" align="center">
-              {upperTr('AI Şef hazırlanıyor')}
+              {upperTr('Yapay Zeka Şefi hazırlanıyor')}
             </Text>
             <Text variant="display" align="center" accessibilityRole="header">
               {name ? `${name}, mutfağın kuruluyor` : 'Mutfağın kuruluyor'}

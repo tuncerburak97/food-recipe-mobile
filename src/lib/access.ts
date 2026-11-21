@@ -62,6 +62,29 @@ export interface PaywallTexts {
   placements: Partial<Record<string, PlacementText>>;
 }
 
+/** One page of the welcome: an illustration, a short text and, when given, numbered steps. */
+export interface WelcomePage {
+  /** The app's own illustration: "video", "chef", "pantry", "cook" or "book"; anything else shows none. */
+  art: string;
+  kicker: string;
+  title: string;
+  text: string;
+  steps?: string[];
+}
+
+/**
+ * The short welcome shown once, after the paywall that ends onboarding is left (by paying or by
+ * going on for free), and under Profil → "Uygulamayı tanı": what to do first, in a few pages.
+ */
+export interface WelcomeTexts {
+  enabled: boolean;
+  pages: WelcomePage[];
+  /** The button on the last page, on the others, and the way out at the top. */
+  cta: string;
+  next: string;
+  skip: string;
+}
+
 /** The "try it with a sample video" step of onboarding. */
 export interface DemoTexts {
   enabled: boolean;
@@ -69,6 +92,8 @@ export interface DemoTexts {
   subtitle: string;
   cta: string;
   skip: string;
+  /** Under the finished recipe: on to the rest of onboarding. */
+  done_cta: string;
   /** Video links or shortcodes whose recipes the server already has; empty lets the app pick. */
   samples: string[];
 }
@@ -89,7 +114,7 @@ export interface BillingConfig {
     home_banner_title: string;
     home_banner_text: string;
   };
-  onboarding: { demo: DemoTexts };
+  onboarding: { demo: DemoTexts; welcome: WelcomeTexts };
   account: { title: string; subtitle: string; reasons: string[]; sharing_needs_sign_in: boolean };
   legal: { terms_url: string; privacy_url: string };
 }
@@ -193,11 +218,43 @@ export const FALLBACK_CONFIG: AppConfig = {
     onboarding: {
       demo: {
         enabled: true,
-        title: 'Önce sihri kendin gör',
+        title: 'Şimdi sihri kendin gör',
         subtitle: 'Instagram’dan ya da YouTube’dan bir yemek videosu seç. Malzemeleri ve adımlarıyla tarife dönüşmesini izle.',
         cta: 'Bu videoyu tarife çevir',
         skip: 'Şimdilik geç',
+        done_cta: 'Harika, mutfağımı hazırla',
         samples: [],
+      },
+      welcome: {
+        enabled: true,
+        pages: [
+          {
+            art: 'video',
+            kicker: 'Instagram’dan tarife',
+            title: 'Beğendiğin videoyu tarife çevir',
+            text: '',
+            steps: [
+              'Instagram’da videonun paylaş simgesine dokun, “Bağlantıyı kopyala”yı seç.',
+              'Tarif Defteri’ne dön ve ana sayfadaki “Yapıştır”a dokun.',
+              'Malzemeler ve adımlar hazır. Adım adım pişir.',
+            ],
+          },
+          {
+            art: 'chef',
+            kicker: 'Sevdiğin şefler',
+            title: 'En sevdiğin şeflere ulaş',
+            text: 'Yapay Zeka Şefi’ne şefin adını yaz; tariflerini önüne getirsin, beğendiğini defterine ekle.',
+          },
+          {
+            art: 'pantry',
+            kicker: 'Malzemeden tarife',
+            title: 'Malzemeyi söyle, tarifini yapalım',
+            text: 'Evde ne varsa yaz ya da sesle söyle. Yapay Zeka Şefi sana uygun bir tarif yazsın.',
+          },
+        ],
+        cta: 'Başlayalım',
+        next: 'Devam',
+        skip: 'Atla',
       },
     },
     account: {
@@ -234,7 +291,15 @@ export const accessApi = {
           placements: b.paywall?.placements ?? {},
         },
         nudges: { ...FALLBACK_CONFIG.billing.nudges, ...b.nudges },
-        onboarding: { demo: { ...FALLBACK_CONFIG.billing.onboarding.demo, ...b.onboarding?.demo, samples: b.onboarding?.demo?.samples ?? [] } },
+        onboarding: {
+          demo: { ...FALLBACK_CONFIG.billing.onboarding.demo, ...b.onboarding?.demo, samples: b.onboarding?.demo?.samples ?? [] },
+          // A server from before the welcome, or one that sent no pages: the app's own.
+          welcome: {
+            ...FALLBACK_CONFIG.billing.onboarding.welcome,
+            ...b.onboarding?.welcome,
+            pages: b.onboarding?.welcome?.pages?.length ? b.onboarding.welcome.pages : FALLBACK_CONFIG.billing.onboarding.welcome.pages,
+          },
+        },
         account: { ...FALLBACK_CONFIG.billing.account, ...b.account, reasons: b.account?.reasons ?? [] },
         legal: { ...FALLBACK_CONFIG.billing.legal, ...b.legal },
       },
@@ -315,6 +380,16 @@ export function placementText(texts: PaywallTexts, placement: string): Placement
 export function useRefreshAccess() {
   const client = useQueryClient();
   return () => client.invalidateQueries({ queryKey: ['access'] });
+}
+
+// What follows onboarding (its paywall, then the welcome) opens by itself. Home also opens the
+// welcome for somebody who has not seen it yet; this keeps it from doing so on top of that.
+let welcomeQueued = false;
+export function queueWelcome() {
+  welcomeQueued = true;
+}
+export function welcomeIsQueued() {
+  return welcomeQueued;
 }
 
 let lastPaywallAt = 0;

@@ -16,6 +16,7 @@ import { KitchenBar } from '@/components/recipe/kitchen-bar';
 import { MetaLine } from '@/components/recipe/meta-pills';
 import { NotesCard } from '@/components/recipe/notes-card';
 import { RecipeLock } from '@/components/recipe/recipe-lock';
+import { HERO_HEIGHT, OVERLAP } from '@/components/recipe/recipe-preview';
 import { ServingsStepper } from '@/components/recipe/servings-stepper';
 import { SourceCreator } from '@/components/recipe/source-creator';
 import { StepList } from '@/components/recipe/step-list';
@@ -43,9 +44,6 @@ import { shareRecipe } from '@/lib/share';
 import { ingredientCount, upperTr } from '@/lib/format';
 import { useDeleteRecipe, useMe, useRecipe, useResetCustomRecipe, useSaveRecipe } from '@/lib/queries';
 
-const HERO_HEIGHT = 330;
-/** How far the white sheet rises over the photo. */
-const OVERLAP = 28;
 type Tab = 'ingredients' | 'steps' | 'notes';
 
 /**
@@ -260,7 +258,7 @@ export default function RecipeScreen() {
                 <ListRow
                   first={!source}
                   leading={<ChefAvatar size={40} />}
-                  title="AI Şefe sor"
+                  title="Yapay Zeka Şefi’ne sor"
                   subtitle="Eksik malzeme, porsiyon, süre… Tarifi sana göre uyarlar."
                   onPress={openAssistant}
                 />
@@ -339,7 +337,7 @@ export default function RecipeScreen() {
               <Button title="Pişirmeye başla" trailingIcon="arrow-forward" onPress={() => router.push(`/cook/${entry.id}`)} style={styles.flex} />
             </>
           ) : (
-            <Button title="AI Şefe sor" icon="chatbubble-ellipses-outline" onPress={openAssistant} style={styles.flex} />
+            <Button title="Yapay Zeka Şefi’ne sor" icon="chatbubble-ellipses-outline" onPress={openAssistant} style={styles.flex} />
           )}
         </StickyFooter>
       )}

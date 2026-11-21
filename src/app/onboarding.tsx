@@ -2,7 +2,7 @@ import { useEffect, useEffectEvent, useState, type ReactNode } from 'react';
 import { BackHandler, Keyboard, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 
 import { AvoidStep } from '@/components/onboarding/avoid-step';
-import { DemoStep } from '@/components/onboarding/demo-step';
+import { DemoStep, useDemoSamples } from '@/components/onboarding/demo-step';
 import { HeroStep } from '@/components/onboarding/hero-step';
 import { NameStep } from '@/components/onboarding/name-step';
 import { StepPage, TopBar } from '@/components/onboarding/onboarding-shell';
@@ -19,11 +19,11 @@ import {
   type SingleField,
   type StepId,
 } from '@/components/onboarding/steps';
+import { usePreloadedVideo } from '@/components/recipe/video-hero';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/hooks/use-theme';
-import { useAppConfig } from '@/lib/access';
+import { queueWelcome, useAppConfig } from '@/lib/access';
 import { emptyProfile, personaFor, type CookProfile } from '@/lib/profile';
-import { tourStorage } from '@/lib/token-storage';
 import { useSession } from '@/store/session';
 
 /** Short label of each question, shown over its title with the question number. */
@@ -38,9 +38,10 @@ const KICKERS: Partial<Record<StepId, string>> = {
 };
 
 /**
- * First-run onboarding: an intro, a live demo (a video turns into a recipe), seven short questions
- * and an animated "setting up" moment that saves the profile and opens the app by itself. One route
- * with an internal step index, so every answer lives in one profile object.
+ * First-run onboarding: an intro, seven short questions, a live demo (a sample video turns into a
+ * recipe, shown as the app shows recipes) and an animated "setting up" moment that saves the
+ * profile and opens the app by itself; the paywall follows. One route with an internal step index,
+ * so every answer lives in one profile object.
  */
 export default function OnboardingScreen() {
   const { colors } = useTheme();
@@ -61,6 +62,11 @@ export default function OnboardingScreen() {
   };
   // The live demo is a server setting (billing.onboarding.demo.enabled): switched off, it is passed over.
   const demoOn = useAppConfig().billing.onboarding.demo.enabled;
+  // Its samples are asked for now and the picked one's video starts loading, so by the time the
+  // questions are answered it plays at once (the server takes seconds to start a video).
+  const samples = useDemoSamples(demoOn);
+  const [sample, setSample] = useState(0);
+  const video = usePreloadedVideo(demoOn ? samples.data?.[sample]?.source?.shortcode : undefined);
   const passed = (i: number) => STEPS[i] === 'demo' && !demoOn;
   const next = () => goTo(passed(index + 1) ? index + 2 : index + 1);
   const back = () => goTo(passed(index - 1) ? index - 2 : index - 1);
@@ -96,9 +102,9 @@ export default function OnboardingScreen() {
     return () => sub.remove();
   }, []);
 
-  // The app tour is not needed after the demo; the user goes straight to Home.
+  // What follows (the paywall, then the welcome) opens by itself: Home must not open the welcome too.
   const finish = async () => {
-    await tourStorage.set('1').catch(() => {});
+    queueWelcome();
     await completeOnboarding(displayName, { ...profile, persona: personaFor(profile).title });
   };
 
@@ -147,7 +153,7 @@ export default function OnboardingScreen() {
         content = <HeroStep onStart={next} />;
         break;
       case 'demo':
-        content = <DemoStep onNext={next} />;
+        content = <DemoStep samples={samples.data ?? []} loading={samples.isPending} chosen={sample} onChoose={setSample} player={video} onNext={next} />;
         break;
       case 'name':
         content = <NameStep kicker={kicker} name={name} onChange={setName} onNext={next} />;

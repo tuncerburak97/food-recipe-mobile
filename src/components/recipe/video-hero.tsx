@@ -38,7 +38,37 @@ interface Props {
   bottomInset?: number;
   /** Cook mode: the current step's moment in the reel (seek there and loop it). */
   clip?: StepClip | null;
+  /**
+   * A player that is already loading this video (usePreloadedVideo), so it plays at once. It is
+   * started when the user taps play; without one the player is made on that tap.
+   */
+  player?: VideoPlayer | null;
   style?: StyleProp<ViewStyle>;
+}
+
+/**
+ * Starts loading a reel before anyone asks to watch it, and gives the player to hand to VideoHero.
+ * The server needs seconds to start a video, so a screen that knows which reel comes next (the
+ * onboarding demo) loads it ahead. Null without a shortcode, and where the video cannot be played
+ * inside the app.
+ */
+export const usePreloadedVideo: (shortcode: string | undefined) => VideoPlayer | null = canPlayInApp ? usePreloaded : useNoVideo;
+
+function useNoVideo(): VideoPlayer | null {
+  return null;
+}
+
+function usePreloaded(shortcode: string | undefined): VideoPlayer | null {
+  // Loaded lazily: see canPlayInApp.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { useVideoPlayer } = require('expo-video') as typeof import('expo-video');
+  const source = useMemo(() => (shortcode && !isYouTube(shortcode) ? videoSource(shortcode) : null), [shortcode]);
+  // Not started here: it only loads, and VideoHero starts it when the user taps play.
+  const player = useVideoPlayer(source, (p) => {
+    p.loop = false;
+    p.timeUpdateEventInterval = 0.25;
+  });
+  return source ? player : null;
 }
 
 /**
@@ -47,7 +77,7 @@ interface Props {
  * at the step's moment and repeats it, and moves along when the step changes. The player can go full
  * screen, and jumps 5 seconds back or forward with its buttons or a double tap on either side.
  */
-export function VideoHero({ shortcode, imageUrl, instagramUrl, bottomInset = 0, clip, style }: Props) {
+export function VideoHero({ shortcode, imageUrl, instagramUrl, bottomInset = 0, clip, player, style }: Props) {
   const [started, setStarted] = useState(false);
   // YouTube videos have no file the app may play: the button opens YouTube.
   const youtube = isYouTube(shortcode);
@@ -55,14 +85,20 @@ export function VideoHero({ shortcode, imageUrl, instagramUrl, bottomInset = 0, 
   const watchStep = inApp && clip != null;
 
   const play = () => {
-    if (inApp) setStarted(true);
-    else if (instagramUrl) Linking.openURL(instagramUrl);
+    if (inApp) {
+      player?.play();
+      setStarted(true);
+    } else if (instagramUrl) Linking.openURL(instagramUrl);
   };
 
   return (
     <View style={[styles.box, style]}>
       {started && shortcode ? (
-        <Player shortcode={shortcode} clip={clip} bottomInset={bottomInset} externalUrl={instagramUrl} />
+        player ? (
+          <PlayerView player={player} shortcode={shortcode} clip={clip} bottomInset={bottomInset} externalUrl={instagramUrl} />
+        ) : (
+          <Player shortcode={shortcode} clip={clip} bottomInset={bottomInset} externalUrl={instagramUrl} />
+        )
       ) : (
         <>
           <RecipeImage uri={imageUrl} style={StyleSheet.absoluteFill} placeholderSize={96} transition={200} />
@@ -92,16 +128,28 @@ export function VideoHero({ shortcode, imageUrl, instagramUrl, bottomInset = 0, 
 function Player({ shortcode, clip, bottomInset, externalUrl }: { shortcode: string; clip?: StepClip | null; bottomInset: number; externalUrl?: string }) {
   // Loaded lazily: see canPlayInApp.
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { useVideoPlayer, VideoView } = require('expo-video') as typeof import('expo-video');
+  const { useVideoPlayer } = require('expo-video') as typeof import('expo-video');
   const source = useMemo(() => videoSource(shortcode), [shortcode]);
   const player = useVideoPlayer(source, (p) => {
     p.loop = false;
     p.timeUpdateEventInterval = 0.25;
     p.play();
   });
+  return <PlayerView player={player} shortcode={shortcode} clip={clip} bottomInset={bottomInset} externalUrl={externalUrl} />;
+}
+
+/** The video of a player with the app's own controls, in place or full screen. */
+function PlayerView({ player, shortcode, clip, bottomInset, externalUrl }: { player: VideoPlayer; shortcode: string; clip?: StepClip | null; bottomInset: number; externalUrl?: string }) {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { VideoView } = require('expo-video') as typeof import('expo-video');
   useClipLoop(player, clip);
   const [fullscreen, setFullscreen] = useState(false);
   const insets = useSafeAreaInsets();
+  // This view exists because the user tapped play. On web a player only plays the views it has,
+  // so the "play" from before this one was there is lost: say it again.
+  useEffect(() => {
+    player.play();
+  }, [player]);
 
   // Our own controls instead of the system ones: those sit under the status bar, over the screen's
   // back and menu buttons, and their full screen mode is hard to leave. One player is shown by one

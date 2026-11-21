@@ -59,7 +59,7 @@ export default function AssistantScreen() {
   if (!entry) {
     return (
       <View style={[styles.screen, { backgroundColor: colors.surface }]}>
-        <ScreenHeader leading="close" title="AI Şef" tone="muted" safeTop={SAFE_TOP} />
+        <ScreenHeader leading="close" title="Yapay Zeka Şefi" tone="muted" safeTop={SAFE_TOP} />
         {recipeQuery.isError ? (
           <ErrorState
             title="Tarif açılamadı"
@@ -138,7 +138,7 @@ export default function AssistantScreen() {
   return (
     <KeyboardAvoidingView behavior="padding" style={[styles.screen, { backgroundColor: colors.surface }]}>
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <ScreenHeader leading="close" title="AI Şef" subtitle={recipe.title} tone="muted" safeTop={SAFE_TOP} />
+        <ScreenHeader leading="close" title="Yapay Zeka Şefi" subtitle={recipe.title} tone="muted" safeTop={SAFE_TOP} />
       </View>
 
       <ScrollView
@@ -153,7 +153,7 @@ export default function AssistantScreen() {
           <ChefAvatar size={76} ring />
           <View style={styles.introText}>
             <Text variant="overline" color="accent">
-              AI ŞEF
+              YAPAY ZEKA ŞEFİ
             </Text>
             <Text variant="title2" align="center">
               Bu tarifte takıldığın her şeyi sor

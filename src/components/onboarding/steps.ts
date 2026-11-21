@@ -2,10 +2,11 @@ import { ALLERGY, BUDGET, CUISINE, DIET, EQUIPMENT, FREQUENCY, GOALS, HOUSEHOLD,
 
 /**
  * Every screen of the onboarding, in order. One route, one state object, internal step index.
- * The demo comes first so the user sees a video turn into a recipe before any question. Spice,
- * equipment, budget and cooking frequency are not asked here; they stay editable in Profil.
+ * The questions come first; after the last one the demo turns a sample video into a recipe, then
+ * the "setting up" moment saves the profile, and the paywall follows it. Spice, equipment, budget
+ * and cooking frequency are not asked here; they stay editable in Profil.
  */
-export const STEPS = ['hero', 'demo', 'name', 'goals', 'household', 'minutes', 'skill', 'cuisines', 'avoid', 'preparing'] as const;
+export const STEPS = ['hero', 'name', 'goals', 'household', 'minutes', 'skill', 'cuisines', 'avoid', 'demo', 'preparing'] as const;
 
 /** Every question id, the onboarding ones and those only on the profile screen. */
 export type StepId =
@@ -52,11 +53,11 @@ export interface MultiQuestion extends StepCopy {
 }
 
 export const COPY = {
-  name: { title: 'Mutfakta sana nasıl seslenelim?', subtitle: 'AI Şef seni adınla karşılasın. İstersen boş bırak.' },
-  dislikes: { title: 'Sevmediğin malzemeler var mı?', subtitle: 'AI Şef bunları tariflerine koymaz.' },
+  name: { title: 'Mutfakta sana nasıl seslenelim?', subtitle: 'Yapay Zeka Şefi seni adınla karşılasın. İstersen boş bırak.' },
+  dislikes: { title: 'Sevmediğin malzemeler var mı?', subtitle: 'Yapay Zeka Şefi bunları tariflerine koymaz.' },
   avoid: {
     title: 'Tabağına girmesin dediklerin',
-    subtitle: 'AI Şef yazdığı her tarifte bunlara uyar. Hiçbiri yoksa doğrudan devam et.',
+    subtitle: 'Yapay Zeka Şefi yazdığı her tarifte bunlara uyar. Hiçbiri yoksa doğrudan devam et.',
   },
 } satisfies Record<string, StepCopy>;
 
@@ -80,7 +81,7 @@ export const QUESTIONS: Partial<Record<StepId, SingleQuestion | MultiQuestion>> 
     field: 'skill',
     options: SKILL,
     title: 'Mutfaktaki halin hangisi?',
-    subtitle: 'AI Şef anlatımını ve tariflerin zorluğunu sana göre ayarlar.',
+    subtitle: 'Yapay Zeka Şefi anlatımını ve tariflerin zorluğunu sana göre ayarlar.',
   },
   minutes: {
     kind: 'single',
@@ -112,7 +113,7 @@ export const QUESTIONS: Partial<Record<StepId, SingleQuestion | MultiQuestion>> 
     field: 'cuisines',
     options: CUISINE,
     title: 'Hangi lezzetler seni çağırıyor?',
-    subtitle: 'Birkaç tane seç; AI Şef önerilerinde bunlara öncelik verir.',
+    subtitle: 'Birkaç tane seç; Yapay Zeka Şefi önerilerinde bunlara öncelik verir.',
   },
   spice: {
     kind: 'single',

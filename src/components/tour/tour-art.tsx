@@ -147,6 +147,53 @@ export function VideoArt() {
   );
 }
 
+/** Asking the assistant for somebody brings that account's recipes. */
+export function ChefArt() {
+  const { colors } = useTheme();
+  return (
+    <Frame>
+      <View style={[styles.bubble, styles.mine, { backgroundColor: colors.ink }]}>
+        <Text variant="subhead" tint={colors.onInk}>
+          Zeynep’in Mutfağı tariflerini getir
+        </Text>
+      </View>
+      <Connector />
+      <Panel style={styles.list}>
+        <View style={styles.listRow}>
+          <View style={[styles.avatar, { backgroundColor: colors.accentSoft }]}>
+            <Text variant="subhead" weight="700" color="accentText">
+              ZM
+            </Text>
+          </View>
+          <View style={styles.flexGap}>
+            <Text variant="headline" numberOfLines={1}>
+              Zeynep’in Mutfağı
+            </Text>
+            <Meta icon="book-outline" text="24 tarif" />
+          </View>
+        </View>
+        {[
+          { title: 'Fırında Tavuk But', meta: '50 dk · 4 kişilik' },
+          { title: 'Közlenmiş Biberli Makarna', meta: '25 dk · 2 kişilik' },
+        ].map((r) => (
+          <View key={r.title} style={[styles.listRow, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }]}>
+            <Thumb size={44} />
+            <View style={styles.flexGap}>
+              <Text variant="headline" numberOfLines={1}>
+                {r.title}
+              </Text>
+              <Text variant="footnote" color="textSecondary">
+                {r.meta}
+              </Text>
+            </View>
+            <Icon name="bookmark-outline" size={16} color={colors.textTertiary} />
+          </View>
+        ))}
+      </Panel>
+    </Frame>
+  );
+}
+
 /** 3: one big step at a time, with a timer that rings. */
 export function CookArt() {
   const { colors } = useTheme();
@@ -266,6 +313,7 @@ const styles = StyleSheet.create({
   hint: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 2 },
   list: { padding: 0, gap: 0, overflow: 'hidden' },
   listRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 12, paddingVertical: 10 },
+  avatar: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   bubble: { maxWidth: '84%', paddingHorizontal: 14, paddingVertical: 10, borderRadius: Radius.lg },
   mine: { alignSelf: 'flex-end', borderBottomRightRadius: 6, marginTop: 4 },
   theirs: { alignSelf: 'flex-start', borderBottomLeftRadius: 6, borderWidth: StyleSheet.hairlineWidth },
