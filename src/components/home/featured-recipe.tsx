@@ -1,9 +1,8 @@
-import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
-import { DishPlaceholder } from '@/components/recipe/ai-hero';
+import { RecipeImage } from '@/components/recipe/recipe-image';
 import { Icon } from '@/components/ui/icon';
 import { PressableScale } from '@/components/ui/pressable-scale';
 import { Tag } from '@/components/ui/tag';
@@ -28,11 +27,7 @@ export function FeaturedRecipe({ entry, width }: { entry: RecipeEntry; width?: n
       accessibilityRole="button"
       accessibilityLabel={`${recipe.title}${facts ? `, ${facts}` : ''}`}
       style={[styles.card, width ? { width } : null]}>
-      {entry.imageUrl ? (
-        <Image source={entry.imageUrl} style={StyleSheet.absoluteFill} contentFit="cover" transition={250} />
-      ) : (
-        <DishPlaceholder size={110} />
-      )}
+      <RecipeImage uri={entry.imageUrl} style={StyleSheet.absoluteFill} placeholderSize={110} transition={250} />
       <LinearGradient
         colors={['rgba(0,0,0,0.18)', 'rgba(0,0,0,0)', 'rgba(0,0,0,0.08)', 'rgba(0,0,0,0.74)']}
         locations={[0, 0.22, 0.5, 1]}

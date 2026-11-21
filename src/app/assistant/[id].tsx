@@ -18,6 +18,7 @@ import { ScreenHeader } from '@/components/ui/screen-header';
 import { Text } from '@/components/ui/text';
 import { Radius, ScreenPadding } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { track } from '@/lib/analytics';
 import { api, describeError } from '@/lib/api';
 import { capitalize } from '@/lib/format';
 import { useRecipe, useSaveCustomRecipe } from '@/lib/queries';
@@ -86,6 +87,7 @@ export default function AssistantScreen() {
     setItems((prev) => [...prev, userItem]);
     setBusy(true);
     try {
+      track('assistant_message_sent', { turn: history.length });
       const answer = await api.askAssistant(id, history);
       const item: ChatItem = {
         id: chatId(),

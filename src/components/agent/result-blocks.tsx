@@ -1,10 +1,9 @@
-import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, LinearTransition } from 'react-native-reanimated';
 
-import { DishPlaceholder } from '@/components/recipe/ai-hero';
+import { RecipeImage } from '@/components/recipe/recipe-image';
 import { Avatar } from '@/components/ui/avatar';
 import { Chip } from '@/components/ui/chip';
 import { Icon, type IconName } from '@/components/ui/icon';
@@ -74,11 +73,7 @@ function RecipeRow({ item, last, label }: { item: AgentRecipeItem; last: boolean
         pressed && { backgroundColor: colors.surfaceMuted },
       ]}>
       <View style={[styles.photo, { backgroundColor: colors.peach }]}>
-        {entry.imageUrl ? (
-          <Image source={entry.imageUrl} style={StyleSheet.absoluteFill} contentFit="cover" transition={120} recyclingKey={entry.id} />
-        ) : (
-          <DishPlaceholder category={recipe.category} size={22} />
-        )}
+        <RecipeImage uri={entry.imageUrl} style={StyleSheet.absoluteFill} placeholderSize={22} transition={120} recyclingKey={entry.id} />
       </View>
       <View style={styles.body}>
         {label ? (

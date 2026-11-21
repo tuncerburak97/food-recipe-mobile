@@ -1,8 +1,7 @@
-import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { DishPlaceholder } from '@/components/recipe/ai-hero';
+import { RecipeImage } from '@/components/recipe/recipe-image';
 import { CreatorLine } from '@/components/recipe/creator-line';
 import { Tag } from '@/components/ui/tag';
 import { Text } from '@/components/ui/text';
@@ -40,11 +39,7 @@ export function RecipeListCard({ entry, mine }: { entry: RecipeEntry; mine?: boo
       accessibilityHint="Tarifi açar"
       style={({ pressed }) => [styles.row, pressed && { backgroundColor: colors.surfaceMuted }]}>
       <View style={[styles.photo, { backgroundColor: colors.peach }]}>
-        {entry.imageUrl ? (
-          <Image source={entry.imageUrl} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} />
-        ) : (
-          <DishPlaceholder category={recipe.category} size={30} />
-        )}
+        <RecipeImage uri={entry.imageUrl} style={StyleSheet.absoluteFill} placeholderSize={30} recyclingKey={entry.id} />
       </View>
       <View style={styles.body}>
         <Text variant="overline" color="textTertiary" numberOfLines={1}>

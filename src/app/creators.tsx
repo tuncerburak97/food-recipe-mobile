@@ -11,6 +11,7 @@ import { EmptyState, ErrorState } from '@/components/ui/empty-state';
 import { SheetLayout } from '@/components/ui/layout';
 import { SearchField } from '@/components/ui/search-field';
 import { useDebounced } from '@/hooks/use-debounced';
+import { useSearchTracking } from '@/lib/analytics';
 import { useTheme } from '@/hooks/use-theme';
 import { describeError } from '@/lib/api';
 import { useCreators } from '@/lib/queries';
@@ -21,6 +22,7 @@ export default function CreatorsScreen() {
   const bottom = useListBottomPadding('stack');
   const [query, setQuery] = useState('');
   const q = useDebounced(query.trim(), 300);
+  useSearchTracking(query, 'creators');
   const creators = useCreators(q || undefined);
   const items = creators.data ?? [];
 

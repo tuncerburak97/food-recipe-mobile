@@ -33,3 +33,5 @@ export const tourStorage = secureValue('tour.v1');
 export const shareGuideHomeStorage = secureValue('share-guide.home.v1');
 /** "1" once the Instagram share guide was shown after the first link shared into the app. */
 export const shareGuideSharedStorage = secureValue('share-guide.shared.v1');
+/** "1" once a guest was offered to sign in after saving recipes (offered once). */
+export const signInNudgeStorage = secureValue('nudge.sign-in.v1');

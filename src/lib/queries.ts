@@ -8,6 +8,7 @@ import {
 } from '@tanstack/react-query';
 import { useEffect } from 'react';
 
+import { track } from '@/lib/analytics';
 import { api, ApiError, type FeedParams } from '@/lib/api';
 import type { CookProfile } from '@/lib/profile';
 import type { Creator, GenerationJob, Recipe, RecipeEntry, RecipePage } from '@/lib/types';
@@ -97,10 +98,12 @@ export function useStartGeneration() {
   return useMutation({
     mutationFn: api.startGeneration,
     onSuccess: (job) => {
+      track('chef_recipe_requested');
       client.setQueryData<{ items: GenerationJob[]; unseen: number }>(['generations'], (old) =>
         old ? { ...old, items: [job, ...old.items.filter((j) => j.id !== job.id)] } : { items: [job], unseen: 0 },
       );
       client.invalidateQueries({ queryKey: ['generations'] });
+      client.invalidateQueries({ queryKey: ['access'] });
     },
   });
 }
@@ -111,10 +114,12 @@ export function useImportRecipe() {
   return useMutation({
     mutationFn: api.importRecipe,
     onSuccess: (job) => {
+      track('recipe_import_started');
       client.setQueryData<{ items: GenerationJob[]; unseen: number }>(['generations'], (old) =>
         old ? { ...old, items: [job, ...old.items.filter((j) => j.id !== job.id)] } : { items: [job], unseen: 0 },
       );
       client.invalidateQueries({ queryKey: ['generations'] });
+      client.invalidateQueries({ queryKey: ['access'] });
     },
   });
 }
@@ -151,6 +156,7 @@ export function useRecipe(id: string) {
 function refreshLists(client: QueryClient) {
   client.invalidateQueries({ queryKey: ['recipes'] });
   client.invalidateQueries({ queryKey: ['me'] });
+  client.invalidateQueries({ queryKey: ['access'] });
   client.invalidateQueries({ queryKey: ['creators'] });
   client.invalidateQueries({ queryKey: ['creator'] });
   client.invalidateQueries({ queryKey: ['categories'] });
@@ -161,6 +167,7 @@ export function useSaveRecipe() {
   return useMutation({
     mutationFn: api.saveRecipe,
     onSuccess: (entry) => {
+      track('recipe_saved', { source: 'reel' });
       client.setQueryData(['recipe', entry.id], entry);
       refreshLists(client);
     },

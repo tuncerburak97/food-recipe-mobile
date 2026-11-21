@@ -1,4 +1,4 @@
-import { Image } from 'expo-image';
+import { RecipeImage } from '@/components/recipe/recipe-image';
 import { StyleSheet, View } from 'react-native';
 
 import { MetaPills } from '@/components/recipe/meta-pills';
@@ -22,9 +22,7 @@ export function RecipePreview({ recipe, imageUrl }: { recipe: Recipe; imageUrl?:
 
   return (
     <View style={styles.wrap}>
-      {imageUrl ? (
-        <Image source={imageUrl} style={[styles.image, { backgroundColor: colors.peach }]} contentFit="cover" transition={200} accessibilityIgnoresInvertColors />
-      ) : null}
+      {imageUrl ? <RecipeImage uri={imageUrl} style={styles.image} placeholderSize={64} transition={200} /> : null}
 
       <View style={styles.head}>
         <Tag label="Tarifin hazır" icon="checkmark-circle" tone="success" />

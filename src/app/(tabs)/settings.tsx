@@ -11,8 +11,10 @@ import { SheetHeader, sheetScrollStyles } from '@/components/ui/layout';
 import { ListGroup, ListRow } from '@/components/ui/list';
 import { SegmentedControl } from '@/components/ui/segmented-control';
 import { Text } from '@/components/ui/text';
+import { Tag } from '@/components/ui/tag';
 import { ScreenPadding, TabBarHeight } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { openPaywall, usePremium } from '@/lib/access';
 import { ALLERGY, DIET, HOUSEHOLD, labelOf } from '@/lib/profile';
 import { useMe } from '@/lib/queries';
 import { useAppearance, type Appearance } from '@/store/appearance';
@@ -33,8 +35,11 @@ export default function SettingsScreen() {
   const { signOut } = useSession();
   const [guide, setGuide] = useState(false);
   const { appearance, setAppearance } = useAppearance();
+  const { config, on, premium } = usePremium();
   const p = me?.profile;
-  const name = me?.name || 'Misafir';
+  const guest = me?.guest ?? true;
+  const name = me?.name || (guest ? 'Misafir' : 'Üye');
+  const recipes = `${me?.recipeCount ?? 0} tarif`;
 
   // One line that tells what the recipes are tailored to, e.g. "2 kişi · Vejetaryen · Kuruyemiş alerjisi".
   const prefs = [
@@ -60,11 +65,14 @@ export default function SettingsScreen() {
           <View style={styles.identity}>
             <Avatar name={name} uri={me?.avatarUrl} size={68} />
             <View style={styles.flex}>
-              <Text variant="title" numberOfLines={1} accessibilityRole="header">
-                {name}
-              </Text>
+              <View style={styles.nameRow}>
+                <Text variant="title" numberOfLines={1} accessibilityRole="header" style={styles.shrink}>
+                  {name}
+                </Text>
+                {premium ? <Tag label="Premium" tone="accent" /> : null}
+              </View>
               <Text variant="subhead" color="textSecondary" numberOfLines={1}>
-                Misafir hesap · {me?.recipeCount ?? 0} tarif
+                {guest ? `Misafir hesap · ${recipes}` : `${me?.email ?? 'Üye'} · ${recipes}`}
               </Text>
             </View>
           </View>
@@ -73,6 +81,20 @@ export default function SettingsScreen() {
         <ListGroup title="Hesabım">
           <ListRow
             first
+            icon="shield-checkmark-outline"
+            title="Hesap ve üyelik"
+            subtitle={guest ? 'Giriş yap, tariflerin kaybolmasın' : premium ? 'Premium üye' : 'Ücretsiz plan'}
+            onPress={() => router.push('/account')}
+          />
+          {on && !premium ? (
+            <ListRow
+              icon="sparkles-outline"
+              title="Premium’a geç"
+              subtitle={config.billing.paywall.subtitle || 'Sınırsız tarif ve video'}
+              onPress={() => openPaywall('settings')}
+            />
+          ) : null}
+          <ListRow
             icon="person-outline"
             title="Kişisel bilgiler ve tercihler"
             subtitle={prefs.length ? prefs.join(' · ') : 'Ad, beslenme, alerjiler, mutfak tercihleri'}
@@ -103,14 +125,16 @@ export default function SettingsScreen() {
             onPress={() => setGuide(true)}
           />
           <ListRow icon="information-circle-outline" title="Sürüm" value={Constants.expoConfig?.version ?? '-'} />
-          <ListRow
-            icon="refresh-outline"
-            title="Baştan başla"
-            subtitle="Yeni bir misafir hesapla tanışma sorularından başla"
-            danger
-            onPress={startOver}
-            accessibilityHint="Önce onay ister"
-          />
+          {guest ? (
+            <ListRow
+              icon="refresh-outline"
+              title="Baştan başla"
+              subtitle="Yeni bir misafir hesapla tanışma sorularından başla"
+              danger
+              onPress={startOver}
+              accessibilityHint="Önce onay ister"
+            />
+          ) : null}
         </ListGroup>
         <ShareGuide visible={guide} onClose={() => setGuide(false)} context="settings" />
       </SheetHeader>
@@ -120,6 +144,8 @@ export default function SettingsScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1, gap: 2 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  shrink: { flexShrink: 1 },
   identity: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingTop: 8 },
   sheet: { paddingHorizontal: ScreenPadding, gap: 28 },
   segment: { padding: 10 },

@@ -2,7 +2,7 @@
   "expo": {
     "name": "Tarif Defteri",
     "slug": "food-recipe-ai-mobile",
-    "version": "1.2.0",
+    "version": "1.3.0",
     "orientation": "portrait",
     "icon": "./assets/icon/icon.png",
     "scheme": "yemektarifi",
@@ -10,7 +10,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.tuncer.food-recipe-ai-mobile",
-      "buildNumber": "10",
+      "buildNumber": "11",
       "icon": {
         "light": "./assets/icon/icon.png",
         "dark": "./assets/icon/icon-dark.png",
@@ -18,11 +18,15 @@
       },
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
-      }
+      },
+      "usesAppleSignIn": true,
+      "associatedDomains": [
+        "applinks:recipe.civar.io"
+      ]
     },
     "android": {
       "package": "com.tuncerburak97.foodrecipeaimobile",
-      "versionCode": 18,
+      "versionCode": 19,
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon/android-foreground.png",
         "monochromeImage": "./assets/icon/android-monochrome.png",
@@ -90,7 +94,9 @@
           "photosPermission": "Pişirdiğin yemeğin fotoğrafını günlüğüne ekleyebilmen için fotoğraflarına erişim gerekiyor.",
           "cameraPermission": "Pişirdiğin yemeğin fotoğrafını çekebilmen için kamera gerekiyor."
         }
-      ]
+      ],
+      "expo-localization",
+      "expo-apple-authentication"
     ],
     "experiments": {
       "typedRoutes": true,
@@ -99,7 +105,8 @@
     "extra": {
       "eas": {
         "projectId": "952595f8-d6d5-43be-9226-63ed782933e1"
-      }
+      },
+      "googleIosClientId": ""
     }
   }
 }

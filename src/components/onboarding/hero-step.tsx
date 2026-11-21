@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { useEffect } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
   FadeInDown,
@@ -21,6 +21,9 @@ import { StickyFooter } from '@/components/ui/layout';
 import { Text } from '@/components/ui/text';
 import { Radius, ScreenPadding } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { SignInPanel } from '@/components/account/sign-in-panel';
+import { useAppConfig } from '@/lib/access';
+import { appleAvailable, googleAvailable } from '@/lib/social-auth';
 
 const POINTS: { icon: IconName; title: string; text: string }[] = [
   { icon: 'logo-instagram', title: 'Instagram’dan tarife', text: 'Beğendiğin yemek videosunu paylaş; malzemeler ve adımlar hazır gelsin.' },
@@ -32,6 +35,10 @@ const POINTS: { icon: IconName; title: string; text: string }[] = [
 export function HeroStep({ onStart }: { onStart: () => void }) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  // Someone coming back (a new phone, a reinstall) skips the questions by signing in.
+  const config = useAppConfig();
+  const canSignIn = appleAvailable(config) || googleAvailable(config);
+  const [signIn, setSignIn] = useState(false);
   return (
     <View style={styles.page}>
       <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + 24 }]} showsVerticalScrollIndicator={false}>
@@ -70,7 +77,22 @@ export function HeroStep({ onStart }: { onStart: () => void }) {
         <Text variant="footnote" color="textTertiary" align="center">
           Üyelik gerekmez · Yaklaşık 1 dakika
         </Text>
+        {canSignIn ? (
+          <Pressable onPress={() => setSignIn(true)} hitSlop={8} accessibilityRole="button" style={({ pressed }) => [styles.signIn, pressed && { opacity: 0.6 }]}>
+            <Text variant="subhead" color="textSecondary">
+              Zaten hesabın var mı?{' '}
+              <Text variant="subhead" weight="700" color="accentText">
+                Giriş yap
+              </Text>
+            </Text>
+          </Pressable>
+        ) : null}
       </StickyFooter>
+      {/* A modal, not a route: while onboarding the app's other screens are not reachable. Signing in
+          to an account that already answered the questions opens the app right away. */}
+      <Modal visible={signIn} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setSignIn(false)}>
+        <SignInPanel reason="returning" onClose={() => setSignIn(false)} />
+      </Modal>
     </View>
   );
 }
@@ -137,6 +159,7 @@ const styles = StyleSheet.create({
   well: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
   pointText: { flex: 1, gap: 2, paddingTop: 1 },
   footer: { borderTopWidth: 0, gap: 12 },
+  signIn: { alignSelf: 'center', minHeight: 36, justifyContent: 'center' },
   art: { height: 210, borderRadius: Radius.xl, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, overflow: 'hidden' },
   reel: { width: 104, height: 156, borderRadius: 18, overflow: 'hidden' },
   reelIg: { position: 'absolute', top: 10, left: 10 },

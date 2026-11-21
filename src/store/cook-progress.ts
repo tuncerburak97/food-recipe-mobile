@@ -1,5 +1,7 @@
 import { useSyncExternalStore } from 'react';
 
+import { track } from '@/lib/analytics';
+
 /** How far the user got with one recipe in cooking mode. Kept for the app session, per recipe. */
 export interface CookProgress {
   /** Orders of the steps marked as done. */
@@ -25,13 +27,18 @@ function get(entryId: string): CookProgress {
 
 export function startCooking(entryId: string) {
   const p = get(entryId);
-  if (!p.startedAt) set(entryId, { ...p, startedAt: Date.now() });
+  if (p.startedAt) return;
+  set(entryId, { ...p, startedAt: Date.now() });
+  track('cooking_started');
 }
 
 export function markStepDone(entryId: string, order: number, isLast: boolean) {
   const p = get(entryId);
   const done = p.done.includes(order) ? p.done : [...p.done, order].sort((a, b) => a - b);
   set(entryId, { ...p, done, startedAt: p.startedAt ?? Date.now(), finishedAt: isLast ? Date.now() : p.finishedAt });
+  if (isLast && !p.finishedAt) {
+    track('cooking_finished', { minutes: p.startedAt ? Math.round((Date.now() - p.startedAt) / 60_000) : null });
+  }
 }
 
 export function undoStep(entryId: string, order: number) {

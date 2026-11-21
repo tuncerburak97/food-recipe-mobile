@@ -61,14 +61,31 @@ export class ApiError extends Error {
     public code: string,
     message: string,
     public status = 0,
+    /** Extra data the server sent with the error (see ApiErrorBody.details). */
+    public details?: unknown,
   ) {
     super(message);
     this.name = 'ApiError';
   }
 
   static from(body: ApiErrorBody, status = 0) {
-    return new ApiError(body.code, body.message, status);
+    return new ApiError(body.code, body.message, status, body.details);
   }
+}
+
+/** True when the server refused because today's free allowance is used up. */
+export function isLimitError(err: unknown): err is ApiError {
+  return err instanceof ApiError && err.code === 'LIMIT_REACHED';
+}
+
+let limitListener: ((err: ApiError) => void) | null = null;
+/** Registers what happens when an action hits a daily limit (the paywall opens; see lib/access). */
+export function onLimitReached(listener: ((err: ApiError) => void) | null) {
+  limitListener = listener;
+}
+/** Tells the listener about a limit error; callers that showed their own message skip it. */
+export function notifyLimit(err: unknown) {
+  if (isLimitError(err)) limitListener?.(err);
 }
 
 /**
@@ -119,14 +136,18 @@ export async function request<T>(path: string, init: RequestInit, timeoutMs: num
     throw new ApiError('INVALID_RESPONSE', 'Sunucudan beklenmeyen bir yanıt geldi', res.status);
   }
   if (!body.success || body.data === undefined) {
-    throw ApiError.from(body.error ?? { code: 'UNKNOWN', message: 'Bilinmeyen hata' }, res.status);
+    const err = ApiError.from(body.error ?? { code: 'UNKNOWN', message: 'Bilinmeyen hata' }, res.status);
+    // Something the user did hit a limit: the paywall opens. Reading (GET) is left to the screen,
+    // which shows the limit in place (a locked recipe).
+    if ((init.method ?? 'GET') !== 'GET') notifyLimit(err);
+    throw err;
   }
   return body.data;
 }
 
 // ---- mapping backend snake_case to app models ----
 
-function toUser(u: ApiUser): AppUser {
+export function toUser(u: ApiUser): AppUser {
   return {
     id: String(u.id),
     name: u.display_name,
@@ -135,12 +156,23 @@ function toUser(u: ApiUser): AppUser {
     recipeCount: u.recipe_count,
     profile: u.profile ?? undefined,
     onboarded: u.onboarded_at != null,
+    createdAt: u.created_at,
+    email: u.email ?? undefined,
+    providers: u.providers ?? [],
+    // Servers from before accounts send no flag: everyone was a guest then.
+    guest: u.is_guest ?? true,
+    premium: u.premium ?? false,
   };
 }
 
 /** Images the backend serves itself come as "/media/..."; make them absolute. */
-function absolute(url: string): string {
+export function absolute(url: string): string {
   return url.startsWith('/') ? API_BASE_URL + url : url;
+}
+
+/** An account as the app shows it: its picture and covers are the server's own copies ("/media/..."). */
+export function toCreator(c: Creator): Creator {
+  return { ...c, avatar_url: c.avatar_url ? absolute(c.avatar_url) : '', covers: (c.covers ?? []).map(absolute) };
 }
 
 export function toEntry(e: ApiEntry): RecipeEntry {
@@ -175,7 +207,7 @@ export function toEntry(e: ApiEntry): RecipeEntry {
           url: s.url,
           ownerUsername: s.owner_username,
           ownerFullName: s.owner_full_name,
-          ownerAvatarUrl: s.owner_avatar_url || undefined,
+          ownerAvatarUrl: s.owner_avatar_url ? absolute(s.owner_avatar_url) : undefined,
           ownerVerified: s.owner_verified,
           likes: s.likes ?? undefined,
           plays: s.plays,
@@ -251,6 +283,50 @@ export const api = {
     return toUser(await request<ApiUser>('/api/v1/me', { method: 'GET' }, 15_000));
   },
 
+  /**
+   * Sign in with Apple or Google. The identity is attached to this device's account, or, when it
+   * already belongs to an account, this device moves to that account: then `token` is the new
+   * bearer token and `merged` says what the guest saved here came along.
+   */
+  async signIn(provider: 'apple' | 'google', identityToken: string, name?: string) {
+    const data = await request<{ user: ApiUser; token?: string; merged: boolean; created: boolean }>(
+      `/api/v1/auth/${provider}`,
+      { method: 'POST', body: json({ identity_token: identityToken, name: name || undefined }) },
+      30_000,
+    );
+    return { user: toUser(data.user), token: data.token || undefined, merged: data.merged, created: data.created };
+  },
+
+  /** Ends this device's session of a member account. */
+  signOut() {
+    return request<{ signed_out: boolean }>('/api/v1/auth/signout', { method: 'POST' }, 15_000);
+  },
+
+  /** Deletes the account and everything in it. Cannot be undone. */
+  deleteAccount() {
+    return request<{ deleted: boolean }>('/api/v1/me', { method: 'DELETE' }, 20_000);
+  },
+
+  /** The user's link to a recipe (the same one every time). */
+  shareRecipe(entryId: string) {
+    return request<{ token: string; url: string }>(`/api/v1/me/recipes/${encodeURIComponent(entryId)}/share`, { method: 'POST' }, 15_000);
+  },
+
+  /** A recipe someone shared with a link. `myEntryId` is set when it is already in the user's book. */
+  async getShared(token: string) {
+    const data = await request<{ entry: ApiEntry; shared_by: string; my_entry_id: number | null }>(
+      `/api/v1/shared/${encodeURIComponent(token)}`,
+      { method: 'GET' },
+      20_000,
+    );
+    return { entry: toEntry(data.entry), sharedBy: data.shared_by, myEntryId: data.my_entry_id != null ? String(data.my_entry_id) : undefined };
+  },
+
+  /** Adds a shared recipe to the user's book. */
+  async saveShared(token: string) {
+    return toEntry(await request<ApiEntry>(`/api/v1/shared/${encodeURIComponent(token)}/save`, { method: 'POST' }, 20_000));
+  },
+
   async listRecipes(p: FeedParams & { cursor?: string; limit?: number }): Promise<RecipePage> {
     const qs = new URLSearchParams({ scope: p.scope, limit: String(p.limit ?? 20) });
     if (p.q) qs.set('q', p.q);
@@ -274,11 +350,11 @@ export const api = {
   async listCreators(q?: string, limit = 100) {
     const qs = new URLSearchParams({ limit: String(limit) });
     if (q) qs.set('q', q);
-    return (await request<{ items: Creator[] }>(`/api/v1/creators?${qs}`, { method: 'GET' }, 20_000)).items;
+    return (await request<{ items: Creator[] }>(`/api/v1/creators?${qs}`, { method: 'GET' }, 20_000)).items.map(toCreator);
   },
 
-  getCreator(username: string) {
-    return request<Creator>(`/api/v1/creators/${encodeURIComponent(username)}`, { method: 'GET' }, 20_000);
+  async getCreator(username: string) {
+    return toCreator(await request<Creator>(`/api/v1/creators/${encodeURIComponent(username)}`, { method: 'GET' }, 20_000));
   },
 
   /** The ingredients most recipes use (staples like salt left out), most used first. */
@@ -387,6 +463,24 @@ export function describeError(err: unknown): { title: string; message: string } 
       return { title: 'Profil bulunamadı', message: 'Bu hesaptan kayıtlı tarif yok.' };
     case 'RECIPE_NOT_FOUND':
       return { title: 'Tarif bulunamadı', message: 'Bu tarif silinmiş olabilir.' };
+    case 'LIMIT_REACHED':
+      return {
+        title: err instanceof Error && err.message ? err.message : 'Bugünlük hakkın doldu',
+        message: 'Yarın yeniden açılır. Beklemek istemezsen Premium ile sınırsız devam edebilirsin.',
+      };
+    case 'SIGN_IN_REQUIRED':
+      return { title: 'Önce giriş yap', message: 'Bu özellik için Apple ya da Google ile giriş yapman yeterli.' };
+    case 'SIGN_IN_INVALID':
+      return { title: 'Giriş doğrulanamadı', message: 'Tekrar dener misin?' };
+    case 'SIGN_IN_UNAVAILABLE':
+    case 'SIGN_IN_RETRY':
+      return { title: 'Giriş şu an yapılamadı', message: 'Birazdan tekrar dener misin?' };
+    case 'SIGN_IN_NOT_CONFIGURED':
+      return { title: 'Bu giriş yöntemi kapalı', message: 'Diğer giriş yöntemini deneyebilirsin.' };
+    case 'ACCOUNT_ALREADY_LINKED':
+      return { title: 'Bu hesap başka bir kimliğe bağlı', message: 'Farklı bir hesapla girmek için önce çıkış yap.' };
+    case 'SHARE_NOT_FOUND':
+      return { title: 'Tarif bulunamadı', message: 'Bu tarif artık paylaşılmıyor.' };
     case 'AUTH_REQUIRED':
     case 'INVALID_TOKEN':
       return { title: 'Oturum bulunamadı', message: 'Devam etmek için tekrar giriş yapmalısın.' };

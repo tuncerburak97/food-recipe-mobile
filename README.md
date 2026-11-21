@@ -50,6 +50,16 @@ npm start                                                # dev client ile Metro 
 - Feed, arama ve kategori filtresi backend'den gelir (`GET /api/v1/recipes`); kaydetme `POST /api/v1/me/recipes`. Veri katmanı: `src/lib/queries.ts` (TanStack Query).
 - Örnek tarifler için backend'de `make seed`; Baseten anahtarı yoksa backend'i `RECIPE_AGENT=mock` ile çalıştır.
 
+## Hesap, Premium ve paylaşım
+
+- Uygulamada anahtar yok: planlar, günlük limitler, paywall ve giriş metinleri, RevenueCat'in açık anahtarı ve Google client ID'leri sunucudan gelir (`GET /api/v1/app/config`, `src/lib/access.ts`). Değiştirmek için uygulama güncellemesi gerekmez.
+- Tek istisna: Google'ın iOS client ID'si `app.json` → `expo.extra.googleIosClientId` alanına yazılır (URL şemasını `app.config.js` türetir). Boşken Google düğmesi görünmez.
+- Giriş: `src/lib/social-auth.ts` (Apple, Google) → `POST /api/v1/auth/...`; oturum `src/store/session.tsx`. Misafirin kaydettikleri hesaba taşınır.
+- Satın alma: `src/lib/purchases.ts` (RevenueCat), ekran `src/app/paywall.tsx`. Bir limit aşıldığında sunucu `402 LIMIT_REACHED` döner ve paywall açılır; tarif ekranı kilidi yerinde gösterir (`src/components/recipe/recipe-lock.tsx`).
+- Paylaşım: `src/lib/share.ts` tarifin linkini alır; link uygulamada `src/app/shared/[token].tsx` ile açılır.
+- Apple girişi, Google girişi ve RevenueCat yerli modül olduğu için yeni bir geliştirme build'i ister. Eski build'de uygulama çalışır, bu üçü "bu sürümde henüz açık değil" der.
+- Hesapların kurulumu: `../recipe-backend/docs/kurulum-premium-giris.md`.
+
 ## Native build / App Store
 
 `ios/` ve `android/` klasörleri `app.json`'dan üretilir (`npx expo prebuild`), elle düzenlenmez.

@@ -11,6 +11,7 @@ import { SheetLayout } from '@/components/ui/layout';
 import { SearchField } from '@/components/ui/search-field';
 import { QUICK_FILTERS, type QuickFilter } from '@/constants/categories';
 import { useDebounced } from '@/hooks/use-debounced';
+import { useSearchTracking } from '@/lib/analytics';
 import type { FeedParams } from '@/lib/api';
 import { useCategories } from '@/lib/queries';
 import type { Category } from '@/lib/types';
@@ -22,6 +23,7 @@ export default function SearchScreen() {
   const [category, setCategory] = useState<Category | 'all'>(params.category ?? 'all');
   const [filters, setFilters] = useState<QuickFilter[]>([]);
   const q = useDebounced(query.trim(), 300);
+  useSearchTracking(query, 'all_recipes', { category: category === 'all' ? undefined : category, filters });
   const counts = useCategories().data;
 
   // Opening Search from a category tile on Home selects that category, also when the tab is already open.
