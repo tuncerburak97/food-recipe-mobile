@@ -8,6 +8,7 @@ import { SheetLayout } from '@/components/ui/layout';
 import { SearchField } from '@/components/ui/search-field';
 import { SegmentedControl } from '@/components/ui/segmented-control';
 import { useDebounced } from '@/hooks/use-debounced';
+import { useSearchTracking } from '@/lib/analytics';
 import { useMe } from '@/lib/queries';
 
 type Tab = 'ai' | 'saved';
@@ -21,6 +22,7 @@ export default function MyRecipesScreen() {
   const [tab, setTab] = useState<Tab>('saved');
   const [query, setQuery] = useState('');
   const q = useDebounced(query.trim(), 300);
+  useSearchTracking(query, 'my_recipes', { list: tab });
 
   const empty = q
     ? {

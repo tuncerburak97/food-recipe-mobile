@@ -36,6 +36,7 @@ import { categoryLabel } from '@/constants/categories';
 import { Radius, ScreenPadding } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { limitDetails, useRefreshAccess } from '@/lib/access';
+import { useRecipeTracking } from '@/lib/analytics';
 import { sourceName } from '@/lib/instagram';
 import { describeError, isLimitError } from '@/lib/api';
 import { shareRecipe } from '@/lib/share';
@@ -57,6 +58,7 @@ export default function RecipeScreen() {
   const insets = useSafeAreaInsets();
   const { colors, isDark } = useTheme();
   const query = useRecipe(id);
+  useRecipeTracking(query.data);
   const me = useMe().data;
   const save = useSaveRecipe();
   const remove = useDeleteRecipe();

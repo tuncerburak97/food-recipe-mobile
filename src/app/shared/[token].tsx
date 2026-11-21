@@ -18,7 +18,7 @@ import { Text } from '@/components/ui/text';
 import { categoryLabel } from '@/constants/categories';
 import { Radius, ScreenPadding } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { track } from '@/lib/analytics';
+import { track, useRecipeTracking } from '@/lib/analytics';
 import { api, describeError } from '@/lib/api';
 import { upperTr } from '@/lib/format';
 
@@ -36,6 +36,7 @@ export default function SharedRecipeScreen() {
   const insets = useSafeAreaInsets();
   const client = useQueryClient();
   const query = useQuery({ queryKey: ['shared', token], queryFn: () => api.getShared(token), enabled: !!token });
+  useRecipeTracking(query.data?.entry, 'shared_link');
   const save = useMutation({
     mutationFn: () => api.saveShared(token),
     onSuccess: (entry) => {

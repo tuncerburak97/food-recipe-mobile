@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { createContext, use, useCallback, useEffect, useState, type ReactNode } from 'react';
 
-import { resetAnalytics, track } from '@/lib/analytics';
+import { identifyUser, resetAnalytics, track } from '@/lib/analytics';
 import { api, setAuthToken, setDeviceId } from '@/lib/api';
 import type { CookProfile } from '@/lib/profile';
 import { claimPurchases } from '@/lib/purchases';
@@ -135,6 +135,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       }
       queryClient.setQueryData(['me'], res.user);
       queryClient.invalidateQueries();
+      // Before the event: when the device moved to an existing account, "signed_in" belongs to
+      // that account, not to the guest that was here.
+      identifyUser(res.user);
       track('signed_in', { provider: t.provider, merged: res.merged, new_member: res.created });
       if (res.token) {
         // A subscription bought on this phone as a guest follows the person into the account.

@@ -4,7 +4,6 @@ import { Stack } from 'expo-router/stack';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { PostHogProvider } from 'posthog-react-native';
 
 import { AccountEffects } from '@/components/account/account-effects';
 import { Button } from '@/components/ui/button';
@@ -14,7 +13,7 @@ import { GenerationWatcher, ToastHost } from '@/components/ui/toast-host';
 import { useAppFonts } from '@/hooks/use-app-fonts';
 import { useTheme } from '@/hooks/use-theme';
 import { openPaywall, useAppConfig } from '@/lib/access';
-import { identifyUser, posthog, useScreenTracking } from '@/lib/analytics';
+import { identifyUser, useScreenTracking } from '@/lib/analytics';
 import { usePushNotifications } from '@/lib/push';
 import { queryClient, useMe } from '@/lib/queries';
 import { AppearanceProvider } from '@/store/appearance';
@@ -25,11 +24,9 @@ SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   return (
-    <PostHogProvider client={posthog} autocapture={{ captureScreens: false, captureTouches: false }}>
-      <AppearanceProvider>
-        <ThemedRoot />
-      </AppearanceProvider>
-    </PostHogProvider>
+    <AppearanceProvider>
+      <ThemedRoot />
+    </AppearanceProvider>
   );
 }
 
@@ -67,7 +64,7 @@ function RootStack() {
   const fontsReady = useAppFonts();
   const ready = status !== 'loading' && fontsReady;
   usePushNotifications(ready && status === 'ready');
-  useScreenTracking();
+  useScreenTracking(ready);
 
   useEffect(() => {
     if (ready) SplashScreen.hideAsync();
@@ -150,12 +147,9 @@ function RootStack() {
 /** Links analytics to the backend user once the account is known. */
 function AnalyticsIdentity() {
   const { data: me } = useMe();
-  const id = me?.id;
-  const name = me?.name;
-  const onboarded = me?.onboarded;
   useEffect(() => {
-    if (id) identifyUser(id, { name, onboarded });
-  }, [id, name, onboarded]);
+    if (me) identifyUser(me);
+  }, [me]);
   return null;
 }
 
